@@ -315,6 +315,11 @@ packing_set_format(struct archive *a, pkg_formats format)
 	const char *notsupp_fmt = "%s is not supported, trying %s";
 
 	switch (format) {
+	case TZS:
+		if (archive_write_add_filter_zstd(a) == ARCHIVE_OK)
+			return ("tzst");
+		else
+			pkg_emit_error(notsupp_fmt, "zstd", "xz");
 	case TXZ:
 		if (archive_write_add_filter_xz(a) == ARCHIVE_OK)
 			return ("txz");
@@ -342,6 +347,8 @@ packing_format_from_string(const char *str)
 {
 	if (str == NULL)
 		return TXZ;
+	if (strcmp(str, "tzst") == 0)
+		return TZS;
 	if (strcmp(str, "txz") == 0)
 		return TXZ;
 	if (strcmp(str, "tbz") == 0)
@@ -360,6 +367,9 @@ packing_format_to_string(pkg_formats format)
 	const char *res = NULL;
 
 	switch (format) {
+	case TZS:
+		res = "tzst";
+		break;
 	case TXZ:
 		res = "txz";
 		break;
