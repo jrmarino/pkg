@@ -778,7 +778,7 @@ pkg_repo_fetch_meta(struct pkg_repo *repo, time_t *t)
 	struct pkg_repo_check_cbdata cbdata;
 
 	dbdirfd = pkg_get_dbdirfd();
-	fd = pkg_repo_fetch_remote_tmp(repo, "meta", "txz", t, &rc);
+	fd = pkg_repo_fetch_remote_tmp(repo, "meta", "tzst", t, &rc);
 	if (fd == -1)
 		return (rc);
 
