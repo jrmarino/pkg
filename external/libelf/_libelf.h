@@ -29,12 +29,15 @@
 #ifndef	__LIBELF_H_
 #define	__LIBELF_H_
 
-#include <bsd_compat.h>
+#include <sys/cdefs.h>
 #include <sys/queue.h>
 
 #include "_libelf_config.h"
 
 #include "_elftc.h"
+
+#define roundup(x, y)	((((x)+((y)-1))/(y))*(y))  /* to any y */
+#define roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
 
 /*
  * Library-private data structures.

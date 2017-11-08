@@ -1502,14 +1502,16 @@ static void
 http_print_html(FILE *out, FILE *in)
 {
 	size_t len;
-	char *line, *p, *q;
+	char *p, *q;
 	int comment, tag;
 
 	comment = tag = 0;
 #ifdef __sun__
+	char line[4096];
 	while (fgets(line, 4096, in) != NULL) {
 		len = strlen(line);
 #else
+	char *line;
 	while ((line = fgetln(in, &len)) != NULL) {
 #endif
 		while (len && isspace((unsigned char)line[len - 1]))
