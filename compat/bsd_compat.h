@@ -188,8 +188,13 @@ FILE * funopen(const void *cookie, int (*readfn)(void *, char *, int),
 #define	MAXHOSTNAMELEN	256
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX	1024
+#endif
+
 #ifdef __sun__
 #define	u_int32_t	uint32_t
+#define	MAXLOGNAME	17
 #endif
 
 #endif

@@ -72,6 +72,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -601,6 +602,9 @@ ftp_closefn(void *v)
 static FILE *
 ftp_setup(conn_t *cconn, conn_t *dconn, int mode)
 {
+#ifdef __sun__
+	return (NULL);
+#else
 	struct ftpio *io;
 	FILE *f;
 
@@ -616,6 +620,7 @@ ftp_setup(conn_t *cconn, conn_t *dconn, int mode)
 	if (f == NULL)
 		free(io);
 	return (f);
+#endif
 }
 
 /*

@@ -29,6 +29,7 @@
 #ifndef	_LIBELF_H_
 #define	_LIBELF_H_
 
+#include <sys/cdefs.h>
 #include <sys/types.h>
 
 #include <elfdefinitions.h>

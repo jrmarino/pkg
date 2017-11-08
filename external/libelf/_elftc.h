@@ -224,6 +224,10 @@ struct name {							\
 #endif
 #endif
 
+#ifdef __sun__
+#define	ELFTC_VCSID(ID)		/**/
+#endif
+
 #if defined(__minix)
 #if defined(__GNUC__)
 #define	ELFTC_VCSID(ID)		__asm__(".ident\t\"" ID "\"")

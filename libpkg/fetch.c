@@ -400,6 +400,9 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 		repo->sshio.out = sshin[1];
 		set_nonblocking(repo->sshio.in);
 
+		pkg_emit_errno("Solaris 10 can't support this function", "start_ssh");
+		goto ssh_cleanup;
+/*
 		repo->ssh = funopen(repo, ssh_read, ssh_write, NULL, ssh_close);
 		if (repo->ssh == NULL) {
 			pkg_emit_errno("Failed to open stream", "start_ssh");
@@ -416,6 +419,7 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 			pkg_debug(1, "SSH> nothing to read, got: %s", line);
 			goto ssh_cleanup;
 		}
+*/
 	}
 	pkg_debug(1, "SSH> get %s %" PRIdMAX "", u->doc, (intmax_t)u->ims_time);
 	fprintf(repo->ssh, "get %s %" PRIdMAX "\n", u->doc, (intmax_t)u->ims_time);

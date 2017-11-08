@@ -63,6 +63,9 @@
 #ifdef __NetBSD__
 #define _NETBSD_SOURCE
 #endif
+#ifdef __sun__
+#include <libgen.h>
+#endif
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -332,6 +335,9 @@ http_closefn(void *v)
 static FILE *
 http_funopen(conn_t *conn, int chunked)
 {
+#ifdef __sun__
+	return (NULL);
+#else
 	struct httpio *io;
 	FILE *f;
 
@@ -348,6 +354,7 @@ http_funopen(conn_t *conn, int chunked)
 		return (NULL);
 	}
 	return (f);
+#endif
 }
 
 
@@ -1440,7 +1447,11 @@ http_connect(struct url *URL, struct url *purl, const char *flags)
 	if (strcasecmp(URL->scheme, SCHEME_HTTPS) == 0 &&
 	    fetch_ssl(conn, URL, verbose) == -1) {
 		/* grrr */
+#ifdef __sun__
+		errno = EACCES;
+#else
 		errno = EAUTH;
+#endif
 		fetch_syserr();
 		goto ouch;
 	}
@@ -1490,7 +1501,12 @@ http_print_html(FILE *out, FILE *in)
 	int comment, tag;
 
 	comment = tag = 0;
+#ifdef __sun__
+	while (fgets(line, 4096, in) != NULL) {
+		len = strlen(line);
+#else
 	while ((line = fgetln(in, &len)) != NULL) {
+#endif
 		while (len && isspace((unsigned char)line[len - 1]))
 			--len;
 		for (p = q = line; q < line + len; ++q) {
