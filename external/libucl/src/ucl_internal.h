@@ -24,6 +24,10 @@
 #ifndef UCL_INTERNAL_H_
 #define UCL_INTERNAL_H_
 
+#ifdef __sun__
+#define	_XOPEN_SOURCE	600
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #else

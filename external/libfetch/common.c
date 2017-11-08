@@ -29,6 +29,10 @@
 
 #include <sys/cdefs.h>
 
+#ifdef __sun__
+#define	_XOPEN_SOURCE	600
+#endif
+
 #include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/time.h>
