@@ -64,6 +64,7 @@ pkg_static_LDADD= @OS_LDFLAGS@ \
 			@LDNS_LIBS@ \
 			@OS_LIBS@ \
 			-larchive \
+			-lzstd \
 			-lz \
 			-lutil \
 			-lbz2 \

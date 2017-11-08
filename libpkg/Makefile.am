@@ -87,6 +87,7 @@ libpkg_la_LIBADD=	$(top_builddir)/compat/libbsd_compat.la \
 			@REPOS_LDADD@ \
 			@LDNS_LIBS@ \
 			-larchive \
+			-lzstd \
 			-lutil \
 			-lssl \
 			-lcrypto \
@@ -120,7 +121,7 @@ endif
 include_HEADERS=	pkg.h
 
 libpkg_static_la_SOURCES=	$(libpkg_la_SOURCES)
-libpkg_static_la_CFLAGS=	$(pkg_common_cflags) -static
+libpkg_static_la_CFLAGS=	$(pkg_common_cflags) -static -DSKIP_PLUGINS
 libpkg_static_la_LIBADD=	$(top_builddir)/external/libucl_static.la \
 			$(top_builddir)/external/libsqlite_static.la \
 			$(top_builddir)/external/libexpat_static.la \

@@ -39,6 +39,8 @@
 #include <utlist.h>
 #include <utstring.h>
 
+#include <bsd_compat.h>
+
 #include "pkg.h"
 #include <private/pkg_printf.h>
 #include <private/pkg.h>

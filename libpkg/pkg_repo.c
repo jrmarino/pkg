@@ -31,7 +31,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __sun__
 #include <sys/sysctl.h>
+#enduf
 #include <sys/uio.h>
 
 #include <archive_entry.h>
@@ -49,6 +51,8 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+
+#include <bsd_compat.h>
 
 #include "pkg.h"
 #include "private/event.h"

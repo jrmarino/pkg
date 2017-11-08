@@ -30,6 +30,7 @@
 #include "bsd_compat.h"
 
 #ifndef HAVE_FUNOPEN
+# ifndef __sun__
 
 FILE *
 funopen(const void *cookie, int (*readfn)(void *, char *, int),
@@ -45,4 +46,5 @@ funopen(const void *cookie, int (*readfn)(void *, char *, int),
 	return (fopencookie(__DECONST(void *, cookie), "a+", c));
 }
 
+ #endif
 #endif

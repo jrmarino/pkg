@@ -37,6 +37,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <strings.h>
 #include <string.h>
 #include <ucl.h>
 #include <utlist.h>
@@ -323,6 +324,16 @@ check_for_hardlink(hardlinks_t *hl, struct stat *st)
 	return (false);
 }
 
+#ifdef __sun__
+static char * lowercopy (const char* oldstring) {
+	char *newstring = strdup (oldstring);
+	for(int i = 0; newstring[i]; i++){
+		newstring[i] = tolower(newstring[i]);
+	}
+	return newstring;
+}
+#endif
+
 bool
 is_valid_abi(const char *arch, bool emit_error) {
 	const char *myarch, *myarch_legacy;
@@ -330,8 +341,25 @@ is_valid_abi(const char *arch, bool emit_error) {
 	myarch = pkg_object_string(pkg_config_get("ABI"));
 	myarch_legacy = pkg_object_string(pkg_config_get("ALTABI"));
 
+#ifdef __sun__
+	int lackmatch = 0;
+	char *arch2   = lowercopy(arch);
+	char *myarch2 = lowercopy(myarch);
+	char *legacy2 = lowercopy(myarch_legacy);
+
+	if (fnmatch(arch2, myarch2, 0) == FNM_NOMATCH &&
+	    fnmatch(arch2, legacy2, 0) == FNM_NOMATCH) {
+		lackmatch = 1;
+	}
+	free(arch2);
+	free(myarch2);
+	free(legacy2);
+
+	if (lackmatch &&
+#else
 	if (fnmatch(arch, myarch, FNM_CASEFOLD) == FNM_NOMATCH &&
 	    fnmatch(arch, myarch_legacy, FNM_CASEFOLD) == FNM_NOMATCH &&
+#endif
 	    strncasecmp(arch, myarch, strlen(myarch)) != 0 &&
 	    strncasecmp(arch, myarch_legacy, strlen(myarch_legacy)) != 0) {
 		if (emit_error)

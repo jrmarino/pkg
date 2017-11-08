@@ -32,7 +32,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef __sun__
 #include <sys/sysctl.h>
+#endif
 #include <sys/wait.h>
 #include <sys/socket.h>
 #include <sys/file.h>
@@ -53,6 +55,8 @@
 #include <math.h>
 #include <poll.h>
 #include <sys/uio.h>
+
+#include <bsd_compat.h>
 
 #include "pkg.h"
 #include "private/event.h"

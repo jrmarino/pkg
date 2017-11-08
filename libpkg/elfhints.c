@@ -210,12 +210,20 @@ scan_dirs_for_shlibs(kh_shlib_t **shlib_list, int numdirs,
 			int		 ret;
 			const char	*vers;
 
+#ifdef __sun__
+			struct stat     stbuf;
+
+			stat(dp->d_name, &stbuf);
+			if (!(S_ISREG(stbuf.st_mode) || S_ISLNK(stbuf.st_mode)))
+				continue;
+#else
 			/* Only regular files and sym-links. On some
 			   filesystems d_type is not set, on these the d_type
 			   field will be DT_UNKNOWN. */
 			if (dp->d_type != DT_REG && dp->d_type != DT_LNK &&
 			    dp->d_type != DT_UNKNOWN)
 				continue;
+#endif
 
 			len = strlen(dp->d_name);
 			if (strictnames) {

@@ -78,8 +78,8 @@ case $host_os in
   linux*)
         OS_CFLAGS="-D_XOPEN_SOURCE -D_GNU_SOURCE -pthread"
         OS_LDFLAGS="-pthread"
-        OS_LIBS="-ldl -lrt"
-        OS_STATIC="false"
+        OS_LIBS="-lrt"
+        OS_STATIC="true"
         ;;
   openbsd*|bitrig*)
         OS_CFLAGS="-D_BSD_SOURCE -I/usr/local/include"
@@ -87,6 +87,11 @@ case $host_os in
         OS_LIBS=
         OS_STATIC="true"
         ;;
+  sunos*)
+        OS_CFLAGS="-D_XOPEN_SOURCE=1 -D_XOPEN_SOURCE_EXTENDED=1"
+        OS_LDFLAGS=
+        OS_LIBS=
+        OS_STATIC="true"
   *)
         OS_CFLAGS="-D_BSD_SOURCE"
         OS_LDFLAGS=

@@ -37,7 +37,7 @@
 #include <machine/endian.h>
 #endif
 #include <sys/types.h>
-#if defined(HAVE_SYS_ELF_COMMON_H) && !defined(__DragonFly__)
+#if defined(HAVE_SYS_ELF_COMMON_H) && !defined(__DragonFly__) && !defined(__FreeBSD__)
 #include <sys/elf_common.h>
 #endif
 #include <sys/stat.h>
