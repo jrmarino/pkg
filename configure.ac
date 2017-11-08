@@ -88,10 +88,11 @@ case $host_os in
         OS_STATIC="true"
         ;;
   solaris*|sunos*)
-        OS_CFLAGS="-D_XOPEN_SOURCE=1 -D_XOPEN_SOURCE_EXTENDED=1"
+        OS_CFLAGS="-D_XOPEN_SOURCE=600 -D__EXTENSIONS__=1"
         OS_LDFLAGS=
         OS_LIBS=
         OS_STATIC="true"
+	;;
   *)
         OS_CFLAGS="-D_BSD_SOURCE"
         OS_LDFLAGS=

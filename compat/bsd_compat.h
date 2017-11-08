@@ -194,7 +194,6 @@ FILE * funopen(const void *cookie, int (*readfn)(void *, char *, int),
 
 #ifdef __sun__
 #define	u_int32_t	uint32_t
-#define	MAXLOGNAME	17
 #endif
 
 #endif
