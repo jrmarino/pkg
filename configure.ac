@@ -297,7 +297,7 @@ AC_SEARCH_LIBS([getprogname], [bsd], [
 	LIBBSD_LIB="-lbsd"
   ], [
     case $host_os in
-      linux*)
+      linux*|solaris*|sunos*)
         AC_MSG_ERROR([Unable to find the libbsd])
         ;;
     esac
