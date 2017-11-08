@@ -59,7 +59,9 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#ifndef __sun__
 #define _XOPEN_SOURCE
+#endif
 #ifdef __NetBSD__
 #define _NETBSD_SOURCE
 #endif
@@ -1393,7 +1395,10 @@ http_connect(struct url *URL, struct url *purl, const char *flags)
 	http_headerbuf_t headerbuf;
 	const char *p;
 	int verbose;
-	int af, val;
+	int af;
+#ifdef TCP_NOPUSH
+	int val;
+#endif
 	int serrno;
 
 #ifdef INET6

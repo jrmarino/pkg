@@ -794,7 +794,10 @@ ftp_transfer(conn_t *conn, const char *oper, const char *file,
 	} else {
 		u_int32_t a;
 		u_short p;
-		int arg, d;
+#ifdef IPV6_PORTRANGE
+		int arg;
+#endif
+		int d;
 		socklen_t sslen;
 		char *ap;
 		char hname[INET6_ADDRSTRLEN];
