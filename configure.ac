@@ -87,7 +87,7 @@ case $host_os in
         OS_LIBS=
         OS_STATIC="true"
         ;;
-  sunos*)
+  solaris*|sunos*)
         OS_CFLAGS="-D_XOPEN_SOURCE=1 -D_XOPEN_SOURCE_EXTENDED=1"
         OS_LDFLAGS=
         OS_LIBS=
