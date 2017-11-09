@@ -1037,7 +1037,10 @@ pkgdb_syscall_overload(void)
 void
 pkgdb_nfs_corruption(sqlite3 *db)
 {
+#if (defined(HAVE_SYS_STATVFS_H) && defined(ST_LOCAL)) || \
+    (defined(HAVE_FSTATFS) && defined(MNT_LOCAL))
 	int dbdirfd = pkg_get_dbdirfd();
+#endif
 
 	if (sqlite3_errcode(db) != SQLITE_CORRUPT)
 		return;

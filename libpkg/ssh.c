@@ -42,6 +42,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <bsd_compat.h>
 

@@ -407,13 +407,15 @@ static int
 create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 {
 	bool tried_mkdir = false;
+#ifdef __sun__
+	char fullpath[MAXPATHLEN];
+#endif
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 retry:
 #ifdef __sun__
-	char fullpath[MAXPATHLEN];
 	snprintf(fullpath, MAXPATHLEN, "%s/%s", pkg->rootpath, RELATIVE_PATH(f->temppath));
-	if (symlink(target, fullpath)) == -1) {
+	if (symlink(target, fullpath) == -1) {
 #else
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
 #endif
@@ -732,9 +734,11 @@ pkg_extract_finalize(struct pkg *pkg)
 	struct pkg_dir *d = NULL;
 	char path[MAXPATHLEN];
 	const char *fto;
+#ifdef HAVE_CHFLAGSAT
 	bool install_as_user;
 
 	install_as_user = (getenv("INSTALL_AS_USER") != NULL);
+#endif
 
 	while (pkg_files(pkg, &f) == EPKG_OK) {
 		if (*f->temppath == '\0')
