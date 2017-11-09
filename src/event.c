@@ -35,7 +35,9 @@
 
 #include <sys/resource.h>
 #include <sys/types.h>
+#ifndef __sun__
 #include <sys/sysctl.h>
+#endif
 #include <sys/wait.h>
 #include <sys/socket.h>
 
@@ -217,8 +219,10 @@ event_sandboxed_call(pkg_sandbox_cb func, int fd, void *ud)
 	}
 
 	rl_zero.rlim_cur = rl_zero.rlim_max = 0;
+#ifndef __sun__
 	if (setrlimit(RLIMIT_NPROC, &rl_zero) == -1)
 		err(EXIT_FAILURE, "Unable to setrlimit(RLIMIT_NPROC)");
+#endif
 
 	/* Here comes child process */
 #ifdef HAVE_CAPSICUM
@@ -325,8 +329,10 @@ event_sandboxed_get_string(pkg_sandbox_cb func, char **result, int64_t *len,
 	drop_privileges();
 
 	rl_zero.rlim_cur = rl_zero.rlim_max = 0;
+#ifndef __sun__
 	if (setrlimit(RLIMIT_NPROC, &rl_zero) == -1)
 		err(EXIT_FAILURE, "Unable to setrlimit(RLIMIT_NPROC)");
+#endif
 
 #ifdef HAVE_CAPSICUM
 	if (cap_enter() < 0 && errno != ENOSYS) {

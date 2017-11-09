@@ -714,9 +714,11 @@ main(int argc, char **argv)
 	umask(022);
 	pkg_event_register(&event_callback, &debug);
 
+#ifndef __sun__
 	/* reset getopt for the next call */
 	optreset = 1;
 	optind = 1;
+#endif
 
 	if (debug == 0 && version == 0 && !ptraced())
 		start_process_worker(save_argv);

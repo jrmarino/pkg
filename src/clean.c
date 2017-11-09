@@ -236,7 +236,7 @@ recursive_analysis(int fd, struct pkgdb *db, const char *dir,
 		struct stat	stbuf;
 
 		stat(ent->d_name, &stbuf);
-		if (S_ISDIR(stbuf.st_mode) {
+		if (S_ISDIR(stbuf.st_mode)) {
 #else
 		if (ent->d_type == DT_DIR) {
 #endif
