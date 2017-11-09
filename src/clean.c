@@ -232,7 +232,14 @@ recursive_analysis(int fd, struct pkgdb *db, const char *dir,
 		    strcmp(ent->d_name, "..") == 0)
 			continue;
 		snprintf(path, sizeof(path), "%s/%s", dir, ent->d_name);
+#ifdef __sun__
+		struct stat	stbuf;
+
+		stat(ent->d_name, &stbuf);
+		if (S_ISDIR(stbuf.st_mode) {
+#else
 		if (ent->d_type == DT_DIR) {
+#endif
 			nbfiles++;
 			newfd = openat(fd, ent->d_name, O_DIRECTORY|O_CLOEXEC, 0);
 			if (newfd == -1) {
@@ -248,8 +255,13 @@ recursive_analysis(int fd, struct pkgdb *db, const char *dir,
 			close(newfd);
 			continue;
 		}
+#ifdef __sun__
+		if (!(S_ISREG(stbuf.st_mode) || S_ISLNK(stbuf.st_mode)))
+			continue;
+#else
 		if (ent->d_type != DT_LNK && ent->d_type != DT_REG)
 			continue;
+#endif
 		nbfiles++;
 		if (all) {
 			*total += add_to_dellist(fd, dl, cachedir, path);
@@ -259,7 +271,11 @@ recursive_analysis(int fd, struct pkgdb *db, const char *dir,
 			*sumlist = populate_sums(db);
 		}
 		name = ent->d_name;
+#ifdef __sun__
+		if (S_ISLNK(stbuf.st_mode)) {
+#else
 		if (ent->d_type == DT_LNK) {
+#endif
 			/* Dereference the symlink and check it for being
 			 * recognized checksum file, or delete the symlink
 			 * later. */
