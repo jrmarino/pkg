@@ -53,6 +53,7 @@
 #endif
 #include <paths.h>
 #include <stdbool.h>
+#include <strings.h>
 #include <string.h>
 #include <unistd.h>
 #ifdef HAVE_LIBELF
