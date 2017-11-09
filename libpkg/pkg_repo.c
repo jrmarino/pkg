@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 #ifndef __sun__
 #include <sys/sysctl.h>
-#enduf
+#endif
 #include <sys/uio.h>
 
 #include <archive_entry.h>

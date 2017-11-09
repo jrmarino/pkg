@@ -39,6 +39,7 @@
 #include "private/event.h"
 #include "private/pkg.h"
 
+#undef TICK
 #define TICK	100
 
 static int pkg_create_from_dir(struct pkg *, const char *, struct packing *);

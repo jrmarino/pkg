@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <fnmatch.h>
 #include <stdio.h>
+#include <strings.h>
 #include <string.h>
 #include <utlist.h>
 

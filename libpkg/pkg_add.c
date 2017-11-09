@@ -250,19 +250,23 @@ set_attrs(int fd, char *path, mode_t perm, uid_t uid, gid_t gid,
 	fdcwd = open(".", O_DIRECTORY|O_CLOEXEC);
 	fchdir(fd);
 
+#ifndef __sun__
 	if (lutimes(RELATIVE_PATH(path), tv) == -1) {
 
 		if (errno != ENOSYS) {
 			pkg_fatal_errno("Fail to set time on %s", path);
 		}
 		else {
+#endif
 			/* Fallback to utimes */
 			if (utimes(RELATIVE_PATH(path), tv) == -1) {
 				pkg_fatal_errno("Fail to set time(fallback) on "
 				    "%s", path);
 			}
+#ifndef __sun__
 		}
 	}
+#endif
 	fchdir(fdcwd);
 	close(fdcwd);
 #ifdef HAVE_UTIMENSAT
@@ -406,7 +410,13 @@ create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 retry:
+#ifdef __sun__
+	char fullpath[MAXPATHLEN];
+	snprintf(fullpath, MAXPATHLEN, "%s/%s", pkg->rootpath, RELATIVE_PATH(f->temppath));
+	if (symlink(target, fullpath)) == -1) {
+#else
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
+#endif
 		if (!tried_mkdir) {
 			if (!mkdirat_p(pkg->rootfd, RELATIVE_PATH(bsd_dirname(f->path))))
 				return (EPKG_FATAL);
