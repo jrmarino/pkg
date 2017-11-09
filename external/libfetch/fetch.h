@@ -32,6 +32,7 @@
 #define _FETCH_H_INCLUDED
 
 #include <sys/cdefs.h>
+#include "bsd_compat.h"
 
 #define _LIBFETCH_VER "libfetch/2.0"
 

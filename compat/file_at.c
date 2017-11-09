@@ -33,7 +33,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 
-#if !HAVE_DECL_UNLINKAT || !HAVE_DECL_FSTATAT
+#if !HAVE_DECL_UNLINKAT || !HAVE_DECL_FSTATAT || !HAVE_DECL_FACCESSAT
 
 static pthread_mutex_t file_at_lock = PTHREAD_MUTEX_INITIALIZER;
 static int file_at_dfd = -1;

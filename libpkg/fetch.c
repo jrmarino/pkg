@@ -110,7 +110,11 @@ pkg_fetch_file_tmp(struct pkg_repo *repo, const char *url, char *dest,
 			.tv_usec = 0
 			}
 		};
+#ifdef __sun__
+		futimesat(fd, NULL, ftimes);
+#else
 		futimes(fd, ftimes);
+#endif
 	}
 
 	close(fd);
@@ -148,7 +152,11 @@ pkg_fetch_file(struct pkg_repo *repo, const char *url, char *dest, time_t t,
 			.tv_usec = 0
 			}
 		};
+#ifdef __sun__
+		futimesat(fd, NULL, ftimes);
+#else
 		futimes(fd, ftimes);
+#endif
 	}
 
 	close(fd);
@@ -730,7 +738,11 @@ cleanup:
 			.tv_usec = 0
 			}
 		};
+#ifdef __sun__
+		futimesat(dest, NULL, ftimes);
+#else
 		futimes(dest, ftimes);
+#endif
 	}
 
 	/* restore original doc */
