@@ -349,7 +349,7 @@ create_dir(struct pkg *pkg, struct pkg_dir *d)
 #ifdef __sun__
 	char fullpath[MAXPATHLEN * 2]; /* 1023*2 + slash + nullchar */
 
-	snprintf(fullpath, MAXPATHLEN, "%s/%s",
+	snprintf(fullpath, sizeof(fullpath), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(d->path));
 	if (strlen(fullpath) > MAXPATHLEN - 1)
 		pkg_fatal_errno("Path exceeds limit(%d): %s",
@@ -430,24 +430,30 @@ static int
 create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 {
 	bool tried_mkdir = false;
-#ifdef __sun__
-	char fullpath[MAXPATHLEN * 2];
-#endif
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
-retry:
+
 #ifdef __sun__
-	snprintf(fullpath, MAXPATHLEN, "%s/%s",
+	char fullpath[MAXPATHLEN * 2];
+	char basepath[MAXPATHLEN * 2];
+
+	snprintf(fullpath, sizeof(fullpath), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(f->temppath));
+	snprintf(basepath, sizeof(basepath), "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
 	if (strlen(fullpath) > MAXPATHLEN - 1)
 		pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
 				MAXPATHLEN, fullpath);
+retry:
 	if (symlink(target, fullpath) == -1) {
+		if (!tried_mkdir) {
+			if (mkdirp(basepath, 0755) == 1)
 #else
+retry:
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
-#endif
 		if (!tried_mkdir) {
 			if (!mkdirat_p(pkg->rootfd, RELATIVE_PATH(bsd_dirname(f->path))))
+#endif
 				return (EPKG_FATAL);
 			tried_mkdir = true;
 			goto retry;
@@ -515,12 +521,12 @@ create_hardlink(struct pkg *pkg, struct pkg_file *f, const char *path)
 	char linkpath2[MAXPATHLEN * 2];
 	char link_dir2[MAXPATHLEN * 2];
 
-	snprintf(linkpath1, MAXPATHLEN, "%s/%s",
+	snprintf(linkpath1, sizeof(linkpath1), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(fh->temppath));
-	snprintf(linkpath2, MAXPATHLEN, "%s/%s",
+	snprintf(linkpath2, sizeof(linkpath2), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(f->temppath));
-	snprintf(link_dir2, MAXPATHLEN, "%s/%s",
-		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path));
+	snprintf(link_dir2, sizeof(link_dir2), "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
 
 	if (strlen(linkpath1) > MAXPATHLEN - 1)
 		pkg_fatal_errno("Hardlink path exceeds limit(%d): %s",
