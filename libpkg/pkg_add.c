@@ -595,14 +595,25 @@ create_regfile(struct pkg *pkg, struct pkg_file *f, struct archive *a,
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 
+#ifdef __sun__
+	char basepath[MAXPATHLEN * 2];
+
+	snprintf(link_dir2, sizeof(link_dir2), "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
+#endif
+
 retry:
 	/* Create the new temp file */
 	fd = openat(pkg->rootfd, RELATIVE_PATH(f->temppath),
 	    O_CREAT|O_WRONLY|O_EXCL, f->perm);
 	if (fd == -1) {
 		if (!tried_mkdir) {
+#ifdef __sun__
+			if (mkdirp(basepath, 0755) == -1) {
+#else
 			if (!mkdirat_p(pkg->rootfd,
 			    RELATIVE_PATH(bsd_dirname(f->path)))) {
+#endif
 				return (EPKG_FATAL);
 			}
 			tried_mkdir = true;
