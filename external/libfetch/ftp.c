@@ -636,14 +636,18 @@ ftp_transfer(conn_t *conn, const char *oper, const char *file,
 	const char *bindaddr;
 	const char *filename;
 	int filenamelen, type;
-	int low, pasv, verbose;
+	int pasv, verbose;
 	int e, sd = -1;
 	socklen_t l;
 	char *s;
 	FILE *df;
 
+#ifdef IPV6_PORTRANGE
+	int low;
+
 	/* check flags */
 	low = CHECK_FLAG('l');
+#endif
 	pasv = CHECK_FLAG('p') || !CHECK_FLAG('P');
 	verbose = CHECK_FLAG('v');
 

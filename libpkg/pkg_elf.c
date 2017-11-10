@@ -488,14 +488,15 @@ pkg_analyse_files(struct pkgdb *db, struct pkg *pkg, const char *stage)
 				PKG_CONTAINS_H_OR_LA);
 
 	while (pkg_files(pkg, &file) == EPKG_OK) {
-		if (stage != NULL)
+		if (stage != NULL) {
 			snprintf(fpath, sizeof(fpath), "%s/%s", stage, file->path);
 			if (strlen(fpath) > MAXPATHLEN - 1) {
 				ret = EPKG_FATAL;
 				goto cleanup;
 			}
-		else
+		} else {
 			strlcpy(fpath, file->path, sizeof(fpath));
+		}
 
 		ret = analyse_elf(pkg, fpath);
 		if (ctx.developer_mode) {
