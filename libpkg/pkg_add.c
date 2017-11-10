@@ -347,15 +347,13 @@ create_dir(struct pkg *pkg, struct pkg_dir *d)
 {
 	struct stat st;
 #ifdef __sun__
-	char fullpath[MAXPATHLEN];
+	char fullpath[MAXPATHLEN * 2]; /* 1023*2 + slash + nullchar */
 
-	if (strlen(pkg->rootpath) + strlen(RELATIVE_PATH(d->path)) < MAXPATHLEN - 2) {
-		snprintf(fullpath, MAXPATHLEN, "%s/%s",
-			 pkg->rootpath, RELATIVE_PATH(d->path));
-	} else {
-		pkg_fatal_errno("Path exceeds limit(%d): %s/%s", MAXPATHLEN,
-			 pkg->rootpath, RELATIVE_PATH(d->path));
-	}
+	snprintf(fullpath, MAXPATHLEN, "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(d->path));
+	if (strlen(fullpath) > MAXPATHLEN - 1)
+		pkg_fatal_errno("Path exceeds limit(%d): %s",
+				MAXPATHLEN, fullpath);
 	if (mkdir(fullpath, 0755) == -1)
 		if (mkdirp(fullpath, 0755) == -1)
 			return (EPKG_FATAL);
@@ -433,19 +431,17 @@ create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 {
 	bool tried_mkdir = false;
 #ifdef __sun__
-	char fullpath[MAXPATHLEN];
+	char fullpath[MAXPATHLEN * 2];
 #endif
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 retry:
 #ifdef __sun__
-	if (strlen(pkg->rootpath) + strlen(RELATIVE_PATH(f->temppath)) < MAXPATHLEN - 2) {
-		snprintf(fullpath, MAXPATHLEN, "%s/%s",
-			 pkg->rootpath, RELATIVE_PATH(f->temppath));
-	} else {
-		pkg_fatal_errno("Path exceeds limit(%d): %s/%s", MAXPATHLEN,
-			 pkg->rootpath, RELATIVE_PATH(f->temppath));
-	}
+	snprintf(fullpath, MAXPATHLEN, "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(f->temppath));
+	if (strlen(fullpath) > MAXPATHLEN - 1)
+		pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
+				MAXPATHLEN, fullpath);
 	if (symlink(target, fullpath) == -1) {
 #else
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
@@ -514,13 +510,37 @@ create_hardlink(struct pkg *pkg, struct pkg_file *f, const char *path)
 		return (EPKG_FATAL);
 	}
 
+#ifdef __sun__
+	char linkpath1[MAXPATHLEN * 2];
+	char linkpath2[MAXPATHLEN * 2];
+	char link_dir2[MAXPATHLEN * 2];
 
+	snprintf(linkpath1, MAXPATHLEN, "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(fh->temppath));
+	snprintf(linkpath2, MAXPATHLEN, "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(f->temppath));
+	snprintf(link_dir2, MAXPATHLEN, "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path));
+
+	if (strlen(linkpath1) > MAXPATHLEN - 1)
+		pkg_fatal_errno("Hardlink path exceeds limit(%d): %s",
+				MAXPATHLEN, linkpath1);
+	if (strlen(linkpath2) > MAXPATHLEN - 1)
+		pkg_fatal_errno("Hardlink path exceeds limit(%d): %s",
+				MAXPATHLEN, linkpath2);
+
+retry:
+	if (link(linkpath1, linkpath2) == -1) {
+		if (!tried_mkdir) {
+			if (mkdirp (link_dir2, 0755) == -1)
+#else
 retry:
 	if (linkat(pkg->rootfd, RELATIVE_PATH(fh->temppath),
 	    pkg->rootfd, RELATIVE_PATH(f->temppath), 0) == -1) {
 		if (!tried_mkdir) {
 			if (!mkdirat_p(pkg->rootfd,
 			    RELATIVE_PATH(bsd_dirname(f->path))))
+#endif
 				return (EPKG_FATAL);
 			tried_mkdir = true;
 			goto retry;
@@ -763,7 +783,7 @@ pkg_extract_finalize(struct pkg *pkg)
 	struct stat st;
 	struct pkg_file *f = NULL;
 	struct pkg_dir *d = NULL;
-	char path[MAXPATHLEN];
+	char path[MAXPATHLEN + 7];
 	const char *fto;
 #ifdef HAVE_CHFLAGSAT
 	bool install_as_user;
@@ -776,11 +796,10 @@ pkg_extract_finalize(struct pkg *pkg)
 			continue;
 		fto = f->path;
 		if (f->config && f->config->status == MERGE_FAILED) {
-			if (strlen(f->path) < MAXPATHLEN - 8) {
-				snprintf(path, sizeof(path), "%s.pkgnew", f->path);
-			} else {
-				pkg_fatal_errno("Path exceeds limit(%d): %s.pkgnew",
-						MAXPATHLEN, f->path);
+			snprintf(path, sizeof(path), "%s.pkgnew", f->path);
+			if (strlen(path) > MAXPATHLEN - 1) {
+				pkg_fatal_errno("Path exceeds limit(%d): %s",
+						MAXPATHLEN, path);
 			}
 			fto = path;
 		}
