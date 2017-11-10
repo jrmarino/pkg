@@ -1015,9 +1015,17 @@ _dbdir_unlink(const char *path)
 static int
 _dbdir_mkdir(const char *path, mode_t mode)
 {
+#ifdef __sun__
+	char fullpath[MAXPATHLEN * 2];
+	snprintf(fullpath, sizeof(fullpath), "%s/%s",
+		 pkg_object_string(pkg_config_get("PKG_DBDIR")),
+		 _dbdir_trim_path(path));
+	return (mkdir (fullpath, mode));
+#else
 	int dfd = pkg_get_dbdirfd();
 
 	return (mkdirat(dfd, _dbdir_trim_path(path), mode));
+#endif
 }
 
 void

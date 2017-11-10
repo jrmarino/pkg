@@ -458,7 +458,7 @@ pkg_analyse_files(struct pkgdb *db, struct pkg *pkg, const char *stage)
 	char *sh;
 	khint_t k;
 	int ret = EPKG_OK;
-	char fpath[MAXPATHLEN];
+	char fpath[MAXPATHLEN*2];
 	const char *lib;
 	bool failures = false;
 
@@ -490,6 +490,10 @@ pkg_analyse_files(struct pkgdb *db, struct pkg *pkg, const char *stage)
 	while (pkg_files(pkg, &file) == EPKG_OK) {
 		if (stage != NULL)
 			snprintf(fpath, sizeof(fpath), "%s/%s", stage, file->path);
+			if (strlen(fpath) > MAXPATHLEN - 1) {
+				ret = EPKG_FATAL;
+				goto cleanup;
+			}
 		else
 			strlcpy(fpath, file->path, sizeof(fpath));
 
