@@ -752,6 +752,7 @@ pkg_absolutepath(const char *src, char *dest, size_t dest_size, bool fromroot) {
 	return (dest);
 }
 
+#ifndef __sun__
 bool
 mkdirat_p(int fd, const char *path)
 {
@@ -779,3 +780,4 @@ mkdirat_p(int fd, const char *path)
 	free(walk);
 	return (true);
 }
+#endif

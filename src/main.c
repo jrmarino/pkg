@@ -831,7 +831,7 @@ main(int argc, char **argv)
 				printf("pkg(8) is already installed. Forcing "
 				    "reinstallation through pkg(7).\n");
 				execl("/usr/sbin/pkg", "pkg", "bootstrap",
-				    "-f", NULL);
+				    "-f", (void *)NULL);
 				/* NOTREACHED */
 			} else
 				errx(EXIT_FAILURE, "pkg(7) bootstrapper not"

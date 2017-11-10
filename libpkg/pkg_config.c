@@ -63,6 +63,11 @@
 #define INDEXFILE	"INDEX"
 #endif
 
+#ifndef SUN_LEN
+#define SUN_LEN(su) \
+	(sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+#endif
+
 struct pkg_ctx ctx = {
 	.eventpipe = -1,
 	.debug_level = 0,

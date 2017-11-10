@@ -346,7 +346,31 @@ static int
 create_dir(struct pkg *pkg, struct pkg_dir *d)
 {
 	struct stat st;
+#ifdef __sun__
+	char fullpath[MAXPATHLEN];
 
+	if (strlen(pkg->rootpath) + strlen(RELATIVE_PATH(d->path)) < MAXPATHLEN - 2) {
+		snprintf(fullpath, MAXPATHLEN, "%s/%s",
+			 pkg->rootpath, RELATIVE_PATH(d->path));
+	} else {
+		pkg_fatal_errno("Path exceeds limit(%d): %s/%s", MAXPATHLEN,
+			 pkg->rootpath, RELATIVE_PATH(d->path));
+	}
+	if (mkdir(fullpath, 0755) == -1)
+		if (mkdirp(fullpath, 0755) == -1)
+			return (EPKG_FATAL);
+	if (fstatat(pkg->rootfd, RELATIVE_PATH(d->path), &st, 0) == -1) {
+		if (errno != ENOENT) {
+			pkg_fatal_errno("Fail to stat directory %s", d->path);
+		}
+		if (fstatat(pkg->rootfd, RELATIVE_PATH(d->path), &st, AT_SYMLINK_NOFOLLOW) == 0) {
+			unlinkat(pkg->rootfd, RELATIVE_PATH(d->path), 0);
+		}
+		if (mkdir(fullpath, 0755) == -1) {
+			pkg_fatal_errno("Fail to create directory %s", d->path);
+		}
+	}
+#else
 	if (mkdirat(pkg->rootfd, RELATIVE_PATH(d->path), 0755) == -1)
 		if (!mkdirat_p(pkg->rootfd, RELATIVE_PATH(d->path)))
 			return (EPKG_FATAL);
@@ -361,6 +385,7 @@ create_dir(struct pkg *pkg, struct pkg_dir *d)
 			pkg_fatal_errno("Fail to create directory %s", d->path);
 		}
 	}
+#endif
 
 	if (st.st_uid == d->uid && st.st_gid == d->gid &&
 	    (st.st_mode & ~S_IFMT) == (d->perm & ~S_IFMT)) {
@@ -414,7 +439,13 @@ create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 retry:
 #ifdef __sun__
-	snprintf(fullpath, MAXPATHLEN, "%s/%s", pkg->rootpath, RELATIVE_PATH(f->temppath));
+	if (strlen(pkg->rootpath) + strlen(RELATIVE_PATH(f->temppath)) < MAXPATHLEN - 2) {
+		snprintf(fullpath, MAXPATHLEN, "%s/%s",
+			 pkg->rootpath, RELATIVE_PATH(f->temppath));
+	} else {
+		pkg_fatal_errno("Path exceeds limit(%d): %s/%s", MAXPATHLEN,
+			 pkg->rootpath, RELATIVE_PATH(f->temppath));
+	}
 	if (symlink(target, fullpath) == -1) {
 #else
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
@@ -745,7 +776,12 @@ pkg_extract_finalize(struct pkg *pkg)
 			continue;
 		fto = f->path;
 		if (f->config && f->config->status == MERGE_FAILED) {
-			snprintf(path, sizeof(path), "%s.pkgnew", f->path);
+			if (strlen(f->path) < MAXPATHLEN - 8) {
+				snprintf(path, sizeof(path), "%s.pkgnew", f->path);
+			} else {
+				pkg_fatal_errno("Path exceeds limit(%d): %s.pkgnew",
+						MAXPATHLEN, f->path);
+			}
 			fto = path;
 		}
 		/*
