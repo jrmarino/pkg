@@ -598,7 +598,7 @@ create_regfile(struct pkg *pkg, struct pkg_file *f, struct archive *a,
 #ifdef __sun__
 	char basepath[MAXPATHLEN * 2];
 
-	snprintf(link_dir2, sizeof(link_dir2), "%s/%s",
+	snprintf(basepath, sizeof(basepath), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
 #endif
 
