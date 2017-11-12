@@ -759,6 +759,11 @@ pkg_get_myarch_elfparse(char *dest, size_t sz)
 	}
 
 
+#ifdef __sun__
+	/* hardcode Solaris:10 */
+	osname = (*pnote_os)[2];
+	version = 10 * 100000;
+#else
 	while ((scn = elf_nextscn(elf, scn)) != NULL) {
 		if (gelf_getshdr(scn, &shdr) != &shdr) {
 			ret = EPKG_FATAL;
@@ -840,6 +845,7 @@ pkg_get_myarch_elfparse(char *dest, size_t sz)
 		else
 			version = le32dec(src);
 	}
+#endif /* __sun__ */
 
 	wordsize_corres_str = elf_corres_to_string(wordsize_corres,
 	    (int)elfhdr.e_ident[EI_CLASS]);

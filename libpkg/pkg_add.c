@@ -346,6 +346,7 @@ static int
 create_dir(struct pkg *pkg, struct pkg_dir *d)
 {
 	struct stat st;
+
 #ifdef __sun__
 	char fullpath[MAXPATHLEN * 2]; /* 1023*2 + slash + nullchar */
 
@@ -432,7 +433,6 @@ create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 	bool tried_mkdir = false;
 
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
-
 #ifdef __sun__
 	char fullpath[MAXPATHLEN * 2];
 	char basepath[MAXPATHLEN * 2];
@@ -601,7 +601,6 @@ create_regfile(struct pkg *pkg, struct pkg_file *f, struct archive *a,
 	snprintf(basepath, sizeof(basepath), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
 #endif
-
 retry:
 	/* Create the new temp file */
 	fd = openat(pkg->rootfd, RELATIVE_PATH(f->temppath),
