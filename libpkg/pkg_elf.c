@@ -715,15 +715,15 @@ pkg_get_myarch_elfparse(char *dest, size_t sz)
 	GElf_Ehdr elfhdr;
 	GElf_Shdr shdr;
 	Elf_Data *data;
-	Elf_Note note;
 	Elf_Scn *scn = NULL;
 	int fd;
 	int version_style = 1;
 #ifndef __sun__
+	Elf_Note note;
 	char *src = NULL;
-	char *osname;
 	char invalid_osname[] = "Unknown";
 #endif
+	char *osname;
 	uint32_t version = 0;
 	int ret = EPKG_OK;
 	const char *arch, *abi, *endian_corres_str, *wordsize_corres_str, *fpu;
