@@ -719,20 +719,26 @@ pkg_get_myarch_elfparse(char *dest, size_t sz)
 	Elf_Scn *scn = NULL;
 	int fd;
 	int version_style = 1;
+#ifndef __sun__
 	char *src = NULL;
 	char *osname;
+	char invalid_osname[] = "Unknown";
+#endif
 	uint32_t version = 0;
 	int ret = EPKG_OK;
 	const char *arch, *abi, *endian_corres_str, *wordsize_corres_str, *fpu;
 	const char *path;
-	char invalid_osname[] = "Unknown";
 	char *note_os[6] = {"Linux", "GNU", "Solaris", "FreeBSD", "NetBSD", "Syllable"};
 	char *(*pnote_os)[6] = &note_os;
-	uint32_t gnu_abi_tag[4];
+	uint32_t gnu_abi_tag[4] = { 0, 0, 0, 0 };
 
 	path = getenv("ABI_FILE");
 	if (path == NULL)
+#ifdef __sun__
+		path = _PATH_LIBC64;
+#else
 		path = _PATH_BSHELL;
+#endif
 
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		pkg_emit_error("ELF library initialization failed: %s",
