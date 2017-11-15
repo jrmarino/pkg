@@ -396,4 +396,20 @@ extern const char *__progname;
 
 #endif	/* __OpenBSD__ */
 
+#ifdef __sun__
+
+#define roundup(x, y)	((((x)+((y)-1))/(y))*(y))  /* to any y */
+#define roundup2(x, y)	(((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
+
+#include <sys/endian.h>
+
+#define	ELFTC_BYTE_ORDER			__BYTE_ORDER
+#define	ELFTC_BYTE_ORDER_LITTLE_ENDIAN		__LITTLE_ENDIAN
+#define	ELFTC_BYTE_ORDER_BIG_ENDIAN		__BIG_ENDIAN
+#define	ELFTC_HAVE_MMAP				1
+#define	ELFTC_HAVE_STRMODE			0
+#define	ELFTC_NEED_BYTEORDER_EXTENSIONS		1
+
+#endif /* __sun__ */
+
 #endif	/* _ELFTC_H */
