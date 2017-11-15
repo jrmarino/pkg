@@ -46,6 +46,7 @@
 #endif
 
 #include <err.h>
+#include <time.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -420,7 +421,7 @@ draw_progressbar(int64_t current, int64_t total)
 	int percent;
 	int64_t transferred;
 	time_t elapsed = 0, now = 0;
-	char buf[8];
+	char buf[18];
 	int64_t bytes_left;
 	int cur_speed;
 	int hours, minutes, seconds;
