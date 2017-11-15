@@ -59,7 +59,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef __sun__
+#if !(defined __sun__ || defined __linux__)
 #define _XOPEN_SOURCE
 #endif
 #ifdef __NetBSD__
