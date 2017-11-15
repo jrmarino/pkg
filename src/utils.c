@@ -50,6 +50,9 @@
 #include <errno.h>
 #include <pwd.h>
 #include <pkg.h>
+#ifdef __linux__
+#include <grp.h>
+#endif
 
 #include <bsd_compat.h>
 
