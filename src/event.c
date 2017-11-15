@@ -109,7 +109,7 @@ cleanup_handler(int dummy __unused)
 }
 
 static void
-format_rate_SI(char *buf, int size, off_t bytes)
+format_rate_SI(char *buf, size_t size, off_t bytes)
 {
 	int i;
 
