@@ -502,7 +502,11 @@ pkg_create_repo_read_pipe(int fd, struct digest_list_entry **dlist)
 }
 
 static int
+#if defined __linux__ || defined __sun__
+fts_compare(const FTSENT **a, const FTSENT **b)
+#else
 fts_compare(const FTSENT *const *a, const FTSENT *const *b)
+#endif
 {
 	/* Sort files before directories, then alpha order */
 	if ((*a)->fts_info != FTS_D && (*b)->fts_info == FTS_D)
