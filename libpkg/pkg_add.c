@@ -355,9 +355,15 @@ create_dir(struct pkg *pkg, struct pkg_dir *d)
 	if (strlen(fullpath) > MAXPATHLEN - 1)
 		pkg_fatal_errno("Path exceeds limit(%d): %s",
 				MAXPATHLEN, fullpath);
-	if (mkdir(fullpath, 0755) == -1)
-		if (mkdirp(fullpath, 0755) == -1)
-			return (EPKG_FATAL);
+	if (mkdir(fullpath, 0755) == -1) {
+		if (errno != EEXIST) {
+			if (mkdirp(fullpath, 0755) == -1) {
+				if (errno != EEXIST) {
+					pkg_fatal_errno ("Failed to mkdirp %s", fullpath);
+				}
+			}
+		}
+	}
 	if (fstatat(pkg->rootfd, RELATIVE_PATH(d->path), &st, 0) == -1) {
 		if (errno != ENOENT) {
 			pkg_fatal_errno("Fail to stat directory %s", d->path);
