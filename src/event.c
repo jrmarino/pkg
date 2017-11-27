@@ -46,6 +46,7 @@
 #endif
 
 #include <err.h>
+#include <time.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -108,7 +109,7 @@ cleanup_handler(int dummy __unused)
 }
 
 static void
-format_rate_SI(char *buf, int size, off_t bytes)
+format_rate_SI(char *buf, size_t size, off_t bytes)
 {
 	int i;
 
@@ -420,7 +421,7 @@ draw_progressbar(int64_t current, int64_t total)
 	int percent;
 	int64_t transferred;
 	time_t elapsed = 0, now = 0;
-	char buf[8];
+	char buf[40];
 	int64_t bytes_left;
 	int cur_speed;
 	int hours, minutes, seconds;

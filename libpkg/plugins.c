@@ -269,7 +269,7 @@ pkg_plugins(struct pkg_plugin **plugin)
 int
 pkg_plugins_init(void)
 {
-#ifdef SKIP_PLUGINS
+#ifndef SKIP_PLUGINS
 	struct pkg_plugin *p = NULL;
 	char pluginfile[MAXPATHLEN];
 	const ucl_object_t *obj, *cur;
@@ -383,6 +383,7 @@ pkg_plugin_parse(struct pkg_plugin *p)
 void
 pkg_plugins_shutdown(void)
 {
+#ifndef SKIP_PLUGINS
 	struct pkg_plugin *p = NULL;
 	int (*shutdown_func)(struct pkg_plugin *p);
 
@@ -400,6 +401,7 @@ pkg_plugins_shutdown(void)
 	 * Deallocate memory used by the plugins
 	 */
 	pkg_plugin_free();
+#endif
 
 	return;
 }
