@@ -89,7 +89,7 @@ case $host_os in
         ;;
   solaris*|sunos*)
         OS_CFLAGS="-D_XOPEN_SOURCE=600 -D__EXTENSIONS__=1"
-        OS_LDFLAGS="-pthread"
+        OS_LDFLAGS=
         OS_LIBS="-lrt -lresolv -lsocket -lgen -lfts"
         OS_STATIC="true"
         ;;
