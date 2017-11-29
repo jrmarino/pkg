@@ -268,7 +268,7 @@ if test $ac_cv_seqpacket = yes ; then
 fi
 AC_SUBST([HAVE_SEQPACKET])
 
-AC_SEARCH_LIBS([ZSTD_versionString], [lzstd], [], [
+AC_SEARCH_LIBS([ZSTD_versionString], [zstd], [], [
   AC_MSG_ERROR([unable to find the libzstd])
 ])
 AC_SEARCH_LIBS([lzma_version_string], [lzma], [], [
