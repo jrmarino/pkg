@@ -168,8 +168,6 @@ char * strnstr(const char *s, const char *find, size_t slen);
 #if !HAVE_FUNOPEN
 #if !HAVE_FOPENCOOKIE
 # ifndef __sun__
-# error "Your system has neither funopen nor fopencookie, cannot continue"
-# else
 FILE * funopen(const void *cookie, int (*readfn)(void *, char *, int),
          int (*writefn)(void *, const char *, int),
          off_t (*seekfn)(void *, off_t, int), int (*closefn)(void *));
