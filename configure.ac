@@ -77,8 +77,8 @@ AC_CANONICAL_HOST
 case $host_os in
   linux*)
         OS_CFLAGS="-D_XOPEN_SOURCE -D_GNU_SOURCE -pthread"
-        OS_LDFLAGS="-pthread"
-        OS_LIBS="-lzstd -lrt"
+        OS_LDFLAGS="-lzstd -pthread"
+        OS_LIBS="-lrt"
         OS_STATIC="true"
         ;;
   openbsd*|bitrig*)
@@ -89,14 +89,14 @@ case $host_os in
         ;;
   solaris*|sunos*)
         OS_CFLAGS="-D_XOPEN_SOURCE=600 -D__EXTENSIONS__=1"
-        OS_LDFLAGS=
-        OS_LIBS="-lzstd -lpthread -lrt -lresolv -lsocket -lgen -lfts"
+        OS_LDFLAGS="-lzstd -pthread"
+        OS_LIBS="-lrt -lresolv -lsocket -lgen -lfts"
         OS_STATIC="true"
         ;;
   *)
         OS_CFLAGS="-D_BSD_SOURCE"
-        OS_LDFLAGS="-pthread"
-        OS_LIBS="-lzstd"
+        OS_LDFLAGS="-lzstd -pthread"
+        OS_LIBS=
         OS_STATIC="true"
         ;;
 esac
