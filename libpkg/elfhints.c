@@ -318,6 +318,10 @@ shlib_list_from_elf_hints(const char *hintsfile)
 	add_dir ("fake-elf-hints-2", "/usr/lib/x86_64-linux-gnu", 1);
 	add_dir ("fake-elf-hints-3", "/lib64", 1);
 #endif
+#if defined __sun__
+	add_dir ("fake-elf-hints-1", "/lib/amd64", 1);
+	add_dir ("fake-elf-hints-2", "/usr/lib/amd64", 1);
+#endif
 
 	return (scan_dirs_for_shlibs(&shlibs, ndirs, dirs, true));
 }
