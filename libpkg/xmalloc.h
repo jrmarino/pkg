@@ -1,6 +1,10 @@
 #ifndef XMALLOC_H
 #define XMALLOC_H
 
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 static inline void *xmalloc(size_t size)
 {
 	void *ptr = malloc(size);
