@@ -230,7 +230,6 @@ set_attrs(int fd, char *path, char *fullpath,
 
 	struct timeval tv[2];
 	struct stat st;
-	int fdcwd;
 #ifdef HAVE_UTIMENSAT
 	struct timespec times[2];
 
@@ -253,6 +252,8 @@ set_attrs(int fd, char *path, char *fullpath,
 		pkg_fatal_errno("Fail to set time(fallback) on %s", fullpath);
 	}
 #else
+	int fdcwd;
+
 	fdcwd = open(".", O_DIRECTORY|O_CLOEXEC);
 	fchdir(fd);
 
@@ -877,7 +878,7 @@ pkg_extract_finalize(struct pkg *pkg)
 			continue;
 #ifdef __sun__
 		snprintf(fullpath, sizeof(fullpath), "%s/%s",
-			pkg->rootpath, d->path));
+			pkg->rootpath, d->path);
 		if (strlen(fullpath) > MAXPATHLEN - 1)
 			pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
 				MAXPATHLEN, fullpath);
