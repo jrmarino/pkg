@@ -30,6 +30,7 @@
 #include "pkg_config.h"
 #endif
 
+#include <stdlib.h>	/* for arc4random_uniform */
 #include <archive.h>
 #include <archive_entry.h>
 #include <assert.h>
