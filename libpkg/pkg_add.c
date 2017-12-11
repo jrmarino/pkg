@@ -223,7 +223,8 @@ out:
 }
 
 static int
-set_attrs(int fd, char *path, mode_t perm, uid_t uid, gid_t gid,
+set_attrs(int fd, char *path, char *fullpath,
+    mode_t perm, uid_t uid, gid_t gid,
     const struct timespec *ats, const struct timespec *mts)
 {
 
@@ -247,28 +248,29 @@ set_attrs(int fd, char *path, mode_t perm, uid_t uid, gid_t gid,
 	tv[1].tv_sec = mts->tv_sec;
 	tv[1].tv_usec = mts->tv_nsec / 1000;
 
+#ifdef __sun__
+	if (utimes(fullpath, tv) == -1) {
+		pkg_fatal_errno("Fail to set time(fallback) on %s", fullpath);
+	}
+#else
 	fdcwd = open(".", O_DIRECTORY|O_CLOEXEC);
 	fchdir(fd);
 
-#ifndef __sun__
 	if (lutimes(RELATIVE_PATH(path), tv) == -1) {
-
 		if (errno != ENOSYS) {
 			pkg_fatal_errno("Fail to set time on %s", path);
 		}
 		else {
-#endif
 			/* Fallback to utimes */
 			if (utimes(RELATIVE_PATH(path), tv) == -1) {
 				pkg_fatal_errno("Fail to set time(fallback) on "
 				    "%s", path);
 			}
-#ifndef __sun__
 		}
 	}
-#endif
 	fchdir(fdcwd);
 	close(fdcwd);
+#endif
 #ifdef HAVE_UTIMENSAT
 	}
 #endif
@@ -455,6 +457,7 @@ retry:
 		if (!tried_mkdir) {
 			if (mkdirp(basepath, 0755) == 1)
 #else
+	char fullpath[1] = { 0 };
 retry:
 	if (symlinkat(target, pkg->rootfd, RELATIVE_PATH(f->temppath)) == -1) {
 		if (!tried_mkdir) {
@@ -468,7 +471,7 @@ retry:
 		pkg_fatal_errno("Fail to create symlink: %s", f->temppath);
 	}
 
-	if (set_attrs(pkg->rootfd, f->temppath, f->perm, f->uid, f->gid,
+	if (set_attrs(pkg->rootfd, f->temppath, fullpath, f->perm, f->uid, f->gid,
 	    &f->time[0], &f->time[1]) != EPKG_OK) {
 		return (EPKG_FATAL);
 	}
@@ -602,10 +605,18 @@ create_regfile(struct pkg *pkg, struct pkg_file *f, struct archive *a,
 	pkg_hidden_tempfile(f->temppath, sizeof(f->temppath), f->path);
 
 #ifdef __sun__
+	char fullpath[MAXPATHLEN * 2];
 	char basepath[MAXPATHLEN * 2];
 
+	snprintf(fullpath, sizeof(fullpath), "%s/%s",
+		 pkg->rootpath, RELATIVE_PATH(f->temppath));
 	snprintf(basepath, sizeof(basepath), "%s/%s",
 		 pkg->rootpath, RELATIVE_PATH(bsd_dirname(f->path)));
+	if (strlen(fullpath) > MAXPATHLEN - 1)
+		pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
+				MAXPATHLEN, fullpath);
+#else
+	char fullpath[1] = { 0 };
 #endif
 retry:
 	/* Create the new temp file */
@@ -669,7 +680,7 @@ retry:
 		close(fd);
 	}
 
-	if (set_attrs(pkg->rootfd, f->temppath, f->perm, f->uid, f->gid,
+	if (set_attrs(pkg->rootfd, f->temppath, fullpath, f->perm, f->uid, f->gid,
 	    &f->time[0], &f->time[1]) != EPKG_OK)
 			return (EPKG_FATAL);
 
@@ -807,6 +818,11 @@ pkg_extract_finalize(struct pkg *pkg)
 	struct pkg_dir *d = NULL;
 	char path[MAXPATHLEN + 7];
 	const char *fto;
+#ifdef __sun__
+	char fullpath[MAXPATHLEN * 2];
+#else
+	char fullpath[1] = { 0 };
+#endif
 #ifdef HAVE_CHFLAGSAT
 	bool install_as_user;
 
@@ -859,7 +875,14 @@ pkg_extract_finalize(struct pkg *pkg)
 	while (pkg_dirs(pkg, &d) == EPKG_OK) {
 		if (d->noattrs)
 			continue;
-		if (set_attrs(pkg->rootfd, d->path, d->perm,
+#ifdef __sun__
+		snprintf(fullpath, sizeof(fullpath), "%s/%s",
+			pkg->rootpath, d->path));
+		if (strlen(fullpath) > MAXPATHLEN - 1)
+			pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
+				MAXPATHLEN, fullpath);
+#endif
+		if (set_attrs(pkg->rootfd, d->path, fullpath, d->perm,
 		    d->uid, d->gid, &d->time[0], &d->time[1]) != EPKG_OK)
 			return (EPKG_FATAL);
 	}
