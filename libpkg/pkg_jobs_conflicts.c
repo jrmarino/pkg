@@ -29,6 +29,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_ARC4RANDOM
+#include <time.h>
+#endif
 
 #include "pkg.h"
 #include "private/event.h"
@@ -52,7 +55,13 @@ pkg_conflicts_sipkey_init(void)
 
 	if (kinit == NULL) {
 		kinit = xmalloc(sizeof(*kinit));
+#ifdef HAVE_ARC4RANDOM
 		arc4random_buf((unsigned char*)kinit, sizeof(*kinit));
+#else
+		srand((unsigned int) time(NULL));
+		for (i = 0; i < sizeof(*kinit); i++)
+			kinit[i] = rand();
+#endif
 	}
 
 	return (kinit);
