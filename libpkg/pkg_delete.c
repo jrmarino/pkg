@@ -238,7 +238,7 @@ rmdir_p(struct pkgdb *db, struct pkg *pkg, char *dir, const char *prefix_r)
 #endif
 
 	if (unlinkat(pkg->rootfd, dir, AT_REMOVEDIR) == -1) {
-		if (errno != ENOTEMPTY && errno != EBUSY)
+		if (errno != ENOTEMPTY && errno != EBUSY && errno != EEXIST)
 			pkg_emit_errno("unlinkat", dir);
 		/* If the directory was already removed by a bogus script, continue removing parents */
 		if (errno != ENOENT)
