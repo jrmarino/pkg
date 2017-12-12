@@ -60,7 +60,7 @@ pkg_conflicts_sipkey_init(void)
 #else
 		srand((unsigned int) time(NULL));
 		for (size_t i = 0; i < sizeof(*kinit); i++)
-			kinit[i] = rand();
+			*(int *)(kinit + i) = rand();
 #endif
 	}
 
