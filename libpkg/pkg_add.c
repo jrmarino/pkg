@@ -454,10 +454,11 @@ create_symlinks(struct pkg *pkg, struct pkg_file *f, const char *target)
 	if (strlen(fullpath) > MAXPATHLEN - 1)
 		pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
 				MAXPATHLEN, fullpath);
+	pkg_debug(2, "Create symlink %s pointing at %s", fullpath, target);
 retry:
 	if (symlink(target, fullpath) == -1) {
 		if (!tried_mkdir) {
-			if (mkdirp(basepath, 0755) == 1)
+			if (mkdirp(basepath, 0755) == -1)
 #else
 	char fullpath[1] = { 0 };
 retry:
