@@ -249,8 +249,19 @@ set_attrs(int fd, char *path, char *fullpath,
 	tv[1].tv_usec = mts->tv_nsec / 1000;
 
 #ifdef __sun__
-	if (utimes(fullpath, tv) == -1) {
-		pkg_fatal_errno("Fail to set time(fallback) on %s", fullpath);
+	/*
+	 * Solaris without utimensat is not capable of changing file
+	 * modification time on a symlink.  The utimes() function will
+	 * attempt to follow the link and fail if the target hasn't been
+	 * created yet.  So skip when the file type shows a symlink
+	 */
+	if (lstat (fullpath, &st) == -1) {
+		pkg_fatal_errno("Fail to get file status %s", fullpath);
+	}
+	if (!S_ISLNK(st.st_mode)) {
+		if (utimes(fullpath, tv) == -1) {
+			pkg_fatal_errno("Fail to set times on %s", fullpath);
+		}
 	}
 #else
 	int fdcwd;
@@ -882,7 +893,7 @@ pkg_extract_finalize(struct pkg *pkg)
 		snprintf(fullpath, sizeof(fullpath), "%s/%s",
 			pkg->rootpath, d->path);
 		if (strlen(fullpath) > MAXPATHLEN - 1)
-			pkg_fatal_errno("Symlink path exceeds limit(%d): %s",
+			pkg_fatal_errno("file path exceeds limit(%d): %s",
 				MAXPATHLEN, fullpath);
 #endif
 		if (set_attrs(pkg->rootfd, d->path, fullpath, d->perm,
