@@ -59,7 +59,7 @@ pkg_conflicts_sipkey_init(void)
 		arc4random_buf((unsigned char*)kinit, sizeof(*kinit));
 #else
 		srand((unsigned int) time(NULL));
-		for (i = 0; i < sizeof(*kinit); i++)
+		for (size_t i = 0; i < sizeof(*kinit); i++)
 			kinit[i] = rand();
 #endif
 	}
