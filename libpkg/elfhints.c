@@ -321,6 +321,10 @@ shlib_list_from_elf_hints(const char *hintsfile)
 #if defined __sun__
 	add_dir ("fake-elf-hints-1", "/lib/amd64", 1);
 	add_dir ("fake-elf-hints-2", "/usr/lib/amd64", 1);
+	add_dir ("fake-elf-hints-3", "/lib/32", 1);
+	add_dir ("fake-elf-hints-4", "/lib/64", 1);
+	add_dir ("fake-elf-hints-5", "/usr/lib/32", 1);
+	add_dir ("fake-elf-hints-6", "/usr/lib/64", 1);
 #endif
 
 	return (scan_dirs_for_shlibs(&shlibs, ndirs, dirs, true));
