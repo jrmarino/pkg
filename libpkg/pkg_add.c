@@ -266,16 +266,20 @@ set_attrs(int fd, char *path, char *fullpath,
 #else
 	int fdcwd;
 
-	fdcwd = open(".", O_DIRECTORY|O_CLOEXEC);
+	if ((fdcwd = open(".", O_DIRECTORY|O_CLOEXEC)) == -1) {
+		pkg_fatal_errno("Failed to open .%s", "");
+	}
 	fchdir(fd);
 
 	if (lutimes(RELATIVE_PATH(path), tv) == -1) {
 		if (errno != ENOSYS) {
+			close(fdcwd);
 			pkg_fatal_errno("Fail to set time on %s", path);
 		}
 		else {
 			/* Fallback to utimes */
 			if (utimes(RELATIVE_PATH(path), tv) == -1) {
+				close(fdcwd);
 				pkg_fatal_errno("Fail to set time(fallback) on "
 				    "%s", path);
 			}
@@ -785,12 +789,12 @@ do_extract(struct archive *a, struct archive_entry *ae,
 			goto cleanup;
 			break;
 		case AE_IFIFO:
-			pkg_emit_error("Archive contains an unsupported filetype (AE_IFFIFO): %s", path);
+			pkg_emit_error("Archive contains an unsupported filetype (AE_IFIFO): %s", path);
 			retcode = EPKG_FATAL;
 			goto cleanup;
 			break;
 		case AE_IFBLK:
-			pkg_emit_error("Archive contains an unsupported filetype (AE_IFFIFO): %s", path);
+			pkg_emit_error("Archive contains an unsupported filetype (AE_IFBLK): %s", path);
 			retcode = EPKG_FATAL;
 			goto cleanup;
 			break;
@@ -961,6 +965,10 @@ pkg_add_check_pkg_archive(struct pkgdb *db, struct pkg *pkg,
 	arch = pkg->abi != NULL ? pkg->abi : pkg->arch;
 
 	if (!is_valid_abi(arch, true) && (flags & PKG_ADD_FORCE) == 0) {
+		return (EPKG_FATAL);
+	}
+
+	if (!is_valid_os_version(pkg) && (flags & PKG_ADD_FORCE) == 0) {
 		return (EPKG_FATAL);
 	}
 
@@ -1397,6 +1405,7 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 
 	while (pkg_dirs(pkg, &d) == EPKG_OK) {
 		if (fstatat(fromfd, RELATIVE_PATH(d->path), &st, 0) == -1) {
+			close(fromfd);
 			pkg_fatal_errno("%s%s", src, d->path);
 		}
 		if (d->perm == 0)
@@ -1405,7 +1414,8 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 			if (getpwnam_r(d->uname, &pwent, buffer, sizeof(buffer),
 			    &pw) < 0) {
 				pkg_emit_error("Unknown user: '%s'", d->uname);
-				return (EPKG_FATAL);
+				retcode = EPKG_FATAL;
+				goto cleanup;
 			}
 			d->uid = pwent.pw_uid;
 		} else {
@@ -1415,7 +1425,8 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 			if (getgrnam_r(d->gname, &grent, buffer, sizeof(buffer),
 			    &gr) < 0) {
 				pkg_emit_error("Unknown group: '%s'", d->gname);
-				return (EPKG_FATAL);
+				retcode = EPKG_FATAL;
+				goto cleanup;
 			}
 			d->gid = grent.gr_gid;
 		} else {
@@ -1436,21 +1447,26 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 #endif
 #endif
 
-		if (create_dir(pkg, d) == EPKG_FATAL)
-			return (EPKG_FATAL);
+		if (create_dir(pkg, d) == EPKG_FATAL) {
+			retcode = EPKG_FATAL;
+			goto cleanup;
+		}
 	}
 
 	hardlinks = kh_init_hls();
 	while (pkg_files(pkg, &f) == EPKG_OK) {
 		if (fstatat(fromfd, RELATIVE_PATH(f->path), &st,
 		    AT_SYMLINK_NOFOLLOW) == -1) {
+			kh_destroy_hls(hardlinks);
+			close(fromfd);
 			pkg_fatal_errno("%s%s", src, f->path);
 		}
 		if (f->uname[0] != '\0') {
 			if (getpwnam_r(f->uname, &pwent, buffer, sizeof(buffer),
 			    &pw) < 0) {
 				pkg_emit_error("Unknown user: '%s'", f->uname);
-				return (EPKG_FATAL);
+				retcode = EPKG_FATAL;
+				goto cleanup;
 			}
 			f->uid = pwent.pw_uid;
 		} else {
@@ -1461,7 +1477,8 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 			if (getgrnam_r(f->gname, &grent, buffer, sizeof(buffer),
 			    &gr) < 0) {
 				pkg_emit_error("Unknown group: '%s'", f->gname);
-				return (EPKG_FATAL);
+				retcode = EPKG_FATAL;
+				goto cleanup;
 			}
 			f->gid = grent.gr_gid;
 		} else {
@@ -1491,16 +1508,21 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 			if ((link_len = readlinkat(fromfd,
 			    RELATIVE_PATH(f->path), target,
 			    sizeof(target))) == -1) {
+				kh_destroy_hls(hardlinks);
+				close(fromfd);
 				pkg_fatal_errno("Impossible to read symlinks "
 				    "'%s'", f->path);
 			}
 			target[link_len] = '\0';
 			if (create_symlinks(pkg, f, target) == EPKG_FATAL) {
-				return (EPKG_FATAL);
+				retcode = EPKG_FATAL;
+				goto cleanup;
 			}
 		} else if (S_ISREG(st.st_mode)) {
 			if ((fd = openat(fromfd, RELATIVE_PATH(f->path),
 			    O_RDONLY)) == -1) {
+				kh_destroy_hls(hardlinks);
+				close(fromfd);
 				pkg_fatal_errno("Impossible to open source file"
 				    " '%s'", RELATIVE_PATH(f->path));
 			}
@@ -1508,24 +1530,29 @@ pkg_add_fromdir(struct pkg *pkg, const char *src)
 			if (path != NULL) {
 				if (create_hardlink(pkg, f, path) == EPKG_FATAL) {
 					close(fd);
-					return (EPKG_FATAL);
+					retcode = EPKG_FATAL;
+					goto cleanup;
 				}
 			} else {
 				if (create_regfile(pkg, f, NULL, NULL, fd, NULL) == EPKG_FATAL) {
 					close(fd);
-					return (EPKG_FATAL);
+					retcode = EPKG_FATAL;
+					goto cleanup;
 				}
 				kh_safe_add(hls, hardlinks, f->path, st.st_ino);
 			}
 			close(fd);
 		} else {
 			pkg_emit_error("Invalid file type");
-			return (EPKG_FATAL);
+			retcode = EPKG_FATAL;
+			goto cleanup;
 		}
 	}
-	kh_destroy_hls(hardlinks);
 
 	retcode = pkg_extract_finalize(pkg);
+
+cleanup:
+	kh_destroy_hls(hardlinks);
 	close(fromfd);
 	return (retcode);
 }

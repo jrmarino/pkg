@@ -47,6 +47,8 @@ static void counter_init(const char *what, int64_t max);
 static void counter_count(void);
 static void counter_end(void);
 
+extern struct pkg_ctx ctx;
+
 static int
 pkg_create_from_dir(struct pkg *pkg, const char *root,
     struct packing *pkg_archive)
@@ -307,7 +309,7 @@ pkg_load_metadata(struct pkg *pkg, const char *mfile, const char *md_dir,
     const char *plist, const char *rootdir, bool testing)
 {
 	struct pkg_manifest_key *keys = NULL;
-	char			 arch[BUFSIZ];
+	const char		*arch;
 	regex_t			 preg;
 	regmatch_t		 pmatch[2];
 	int			 i, ret = EPKG_OK;
@@ -347,7 +349,12 @@ pkg_load_metadata(struct pkg *pkg, const char *mfile, const char *md_dir,
 
 	/* if no arch autodetermine it */
 	if (pkg->abi == NULL) {
-		pkg_get_myarch(arch, BUFSIZ);
+#ifdef __FreeBSD__
+		char *osversion;
+		xasprintf(&osversion, "%d", ctx.osversion);
+		pkg_kv_add(&pkg->annotations, "FreeBSD_version", osversion, "annotation");
+#endif
+		arch = pkg_object_string(pkg_config_get("ABI"));
 		pkg->abi = xstrdup(arch);
 		defaultarch = true;
 	}

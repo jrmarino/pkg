@@ -3,41 +3,139 @@
 . $(atf_get_srcdir)/test_environment.sh
 
 tests_init \
+	complex_conflicts \
 	find_conflicts
 
-find_conflicts_body() {
-	touch a
-	cat << EOF >> manifest
-name: test
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: /
-abi = "*";
-desc: <<EOD
-Yet another test
-EOD
+# install foo
+# foo depends on bar-1.0
+# foo is upgraded to new dep on bar1-1.0 & bar is updated to 2.0
+# bar1 and bar conflict with each other
+complex_conflicts_body() {
+	echo "bar-1.0" > file1
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg bar bar 1.0 "${TMPDIR}"
+	cat << EOF >> bar.ucl
 files: {
-	${TMPDIR}/a: "",
+	${TMPDIR}/file1: "",
 }
 EOF
 
-	cat << EOF >> manifest2
-name: test2
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: /
-abi = "*";
-desc: <<EOD
-Yet another test
-EOD
+	atf_check \
+		-o empty \
+		-e empty \
+		-s exit:0 \
+		pkg create -M ./bar.ucl -o ./repo/
+
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg foo foo 1.0 "${TMPDIR}"
+	cat << EOF >> foo.ucl
+deps: {
+	bar: {
+		origin: "bar",
+		version: "1.0"
+	}
+}
+EOF
+
+	atf_check \
+		-o empty \
+		-e empty \
+		-s exit:0 \
+		pkg create -M ./foo.ucl -o ./repo/
+
+	cat << EOF > pkg.conf
+PKG_DBDIR=${TMPDIR}
+REPOS_DIR=[]
+repositories: {
+	local: { url : file://${TMPDIR}/repo }
+}
+EOF
+
+	atf_check \
+		-o inline:"Creating repository in ./repo:  done\nPacking files for repository:  done\n" \
+		-e empty \
+		-s exit:0 \
+		pkg -C ./pkg.conf repo ./repo
+
+	atf_check \
+		-o ignore \
+		-e match:".*load error: access repo file.*" \
+		-s exit:0 \
+		pkg -C ./pkg.conf update -f
+
+	atf_check \
+		-o match:"Installing foo-1\.0" \
+		-s exit:0 \
+		pkg -C ./pkg.conf install -y foo
+
+	# Upgrade bar
+	rm -fr repo
+	echo "bar-2.0" > file1
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg bar bar 2.0 "${TMPDIR}"
+	cat << EOF >> bar.ucl
+files: {
+	${TMPDIR}/file1: "",
+}
+EOF
+
+	atf_check \
+		-o empty \
+		-e empty \
+		-s exit:0 \
+		pkg create -M ./bar.ucl -o ./repo/
+
+	# Create bar1-1.1
+	echo "bar-1.1" > file1
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg bar1 bar1 1.1 "${TMPDIR}"
+	cat << EOF >> bar.ucl
+files: {
+	${TMPDIR}/file1: "",
+}
+EOF
+
+	atf_check \
+		-o empty \
+		-e empty \
+		-s exit:0 \
+		pkg create -M ./bar.ucl -o ./repo/
+
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg foo foo 1.1 "${TMPDIR}"
+	cat << EOF >> foo.ucl
+deps: {
+	bar1: {
+		origin: "bar1",
+		version: "1.1"
+	}
+}
+EOF
+
+	atf_check \
+		-o empty \
+		-e empty \
+		-s exit:0 \
+		pkg create -M ./foo.ucl -o ./repo/
+
+	atf_check \
+		-o inline:"Creating repository in ./repo:  done\nPacking files for repository:  done\n" \
+		-e empty \
+		-s exit:0 \
+		pkg -C ./pkg.conf repo ./repo
+
+	atf_check \
+		-o ignore \
+		-e empty \
+		-s exit:0 \
+		pkg -C ./pkg.conf update -f
+
+	atf_check \
+		-o match:"Upgrading bar from 1\.0 to 2\.0" \
+		-e empty \
+		-s exit:0 \
+		pkg -C ./pkg.conf upgrade -y
+}
+
+find_conflicts_body() {
+	touch a
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_manifest test 1 /
+	cat << EOF >> +MANIFEST
 files: {
 	${TMPDIR}/a: "",
 }
@@ -46,13 +144,20 @@ EOF
 		-o match:".*Installing.*\.\.\.$" \
 		-e empty \
 		-s exit:0 \
-		pkg register -M manifest
+		pkg register -M +MANIFEST
+
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_manifest test2 1 /
+	cat << EOF >> +MANIFEST
+files: {
+	${TMPDIR}/a: "",
+}
+EOF
 
 	atf_check \
 		-o empty \
 		-e empty \
 		-s exit:0 \
-		pkg create -M manifest2 -o .
+		pkg create -M +MANIFEST -o .
 
 	atf_check \
 		-o inline:"Creating repository in .:  done\nPacking files for repository:  done\n" \
