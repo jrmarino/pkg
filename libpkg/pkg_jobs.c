@@ -2017,8 +2017,9 @@ pkg_jobs_execute(struct pkg_jobs *j)
 				goto cleanup;
 			}
 			if (ps->type == PKG_SOLVED_DELETE &&
-			    (strcmp(p->name, "pkg") == 0 ||
-			    strcmp(p->name, "pkg-devel") == 0) &&
+			    (strcmp(p->name, "pkg-bsd-static-standard") == 0 ||
+			    strcmp(p->name, "pkg-bsd-shared-standard") == 0 ||
+			    strcmp(p->name, "pkg-bsd-complete-standard") == 0) &&
 			    (flags & PKG_DELETE_FORCE) == 0) {
 				pkg_emit_error("Cannot delete pkg itself without force flag");
 				retcode = EPKG_FATAL;
