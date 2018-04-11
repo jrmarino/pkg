@@ -679,7 +679,7 @@ static bool
 new_pkg_version(struct pkg_jobs *j)
 {
 	struct pkg *p;
-	const char *uid = "pkg";
+	const char *uid = "pkg-bsd-single-standard";
 	pkg_flags old_flags;
 	bool ret = false;
 	struct pkg_job_universe_item *nit, *cit;
@@ -690,11 +690,6 @@ new_pkg_version(struct pkg_jobs *j)
 
 	/* determine local pkgng */
 	p = pkg_jobs_universe_get_local(j->universe, uid, 0);
-
-	if (p == NULL) {
-		uid = "pkg-devel";
-		p = pkg_jobs_universe_get_local(j->universe, uid, 0);
-	}
 
 	/* you are using git version skip */
 	if (p == NULL) {
@@ -2017,9 +2012,7 @@ pkg_jobs_execute(struct pkg_jobs *j)
 				goto cleanup;
 			}
 			if (ps->type == PKG_SOLVED_DELETE &&
-			    (strcmp(p->name, "pkg-bsd-static-standard") == 0 ||
-			    strcmp(p->name, "pkg-bsd-shared-standard") == 0 ||
-			    strcmp(p->name, "pkg-bsd-complete-standard") == 0) &&
+			    (strcmp(p->name, "pkg-bsd-single-standard") == 0) &&
 			    (flags & PKG_DELETE_FORCE) == 0) {
 				pkg_emit_error("Cannot delete pkg itself without force flag");
 				retcode = EPKG_FATAL;
