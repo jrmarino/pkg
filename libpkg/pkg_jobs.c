@@ -2015,8 +2015,9 @@ pkg_jobs_execute(struct pkg_jobs *j)
 			    (strcmp(p->name, "pkg-bsd-single-standard") == 0) &&
 			    (flags & PKG_DELETE_FORCE) == 0) {
 				pkg_emit_error("Cannot delete pkg itself without force flag");
-				retcode = EPKG_FATAL;
-				goto cleanup;
+				/* Unlike FreeBSD decision, this is not a fatal issue */
+				retcode = EPKG_OK;
+				break;
 			}
 			/*
 			 * Assume that in upgrade we can remove packages with rdeps as
