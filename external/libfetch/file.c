@@ -27,8 +27,6 @@
  */
 
 #include <sys/cdefs.h>
-#include "bsd_compat.h"
-__FBSDID("$FreeBSD: head/lib/libfetch/file.c 240495 2012-09-14 12:15:13Z eadler $");
 
 #include <sys/param.h>
 #include <sys/stat.h>
@@ -41,23 +39,23 @@ __FBSDID("$FreeBSD: head/lib/libfetch/file.c 240495 2012-09-14 12:15:13Z eadler 
 #include "fetch.h"
 #include "common.h"
 
-FILE *
+FXRETTYPE
 fetchXGetFile(struct url *u, struct url_stat *us, const char *flags)
 {
-	FILE *f;
+	FXRETTYPE f;
 
 	if (us && fetchStatFile(u, us, flags) == -1)
 		return (NULL);
 
-	f = fopen(u->doc, "re");
+	f = FXOPEN(u->doc, "re");
 
 	if (f == NULL) {
 		fetch_syserr();
 		return (NULL);
 	}
 
-	if (u->offset && fseeko(f, u->offset, SEEK_SET) == -1) {
-		fclose(f);
+	if (u->offset && FXSEEKO(f, u->offset, SEEK_SET) == -1) {
+		FXCLOSE(f);
 		fetch_syserr();
 		return (NULL);
 	}
@@ -65,29 +63,29 @@ fetchXGetFile(struct url *u, struct url_stat *us, const char *flags)
 	return (f);
 }
 
-FILE *
+FXRETTYPE
 fetchGetFile(struct url *u, const char *flags)
 {
 	return (fetchXGetFile(u, NULL, flags));
 }
 
-FILE *
+FXRETTYPE
 fetchPutFile(struct url *u, const char *flags)
 {
-	FILE *f;
+	FXRETTYPE f;
 
 	if (CHECK_FLAG('a'))
-		f = fopen(u->doc, "ae");
+		f = FXOPEN(u->doc, "ae");
 	else
-		f = fopen(u->doc, "w+e");
+		f = FXOPEN(u->doc, "w+e");
 
 	if (f == NULL) {
 		fetch_syserr();
 		return (NULL);
 	}
 
-	if (u->offset && fseeko(f, u->offset, SEEK_SET) == -1) {
-		fclose(f);
+	if (u->offset && FXSEEKO(f, u->offset, SEEK_SET) == -1) {
+		FXCLOSE(f);
 		fetch_syserr();
 		return (NULL);
 	}

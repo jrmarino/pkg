@@ -33,6 +33,7 @@
 
 #define FTP_DEFAULT_PORT	21
 #define HTTP_DEFAULT_PORT	80
+#define HTTPS_DEFAULT_PORT	443
 #define FTP_DEFAULT_PROXY_PORT	21
 #define HTTP_DEFAULT_PROXY_PORT	3128
 
@@ -42,6 +43,22 @@
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#endif
+
+#ifndef __unused
+#define	__unused	__attribute__((__unused__))
+#endif
+
+#ifdef __linux__
+#define SKIP_EAUTH	/* Authentication error */
+#define SKIP_ENEEDAUTH	/* Need authenticator */
+#define MAXLOGNAME	17
+#endif
+
+#ifdef __sun__
+#define	SKIP_EAUTH
+#define	SKIP_ENEEDAUTH
+#define MAXLOGNAME	17
 #endif
 
 /* Connection */
@@ -115,12 +132,12 @@ int		 fetch_no_proxy_match(const char *);
  * Note that _*_request() free purl, which is way ugly but saves us a
  * whole lot of trouble.
  */
-FILE		*http_request(struct url *, const char *,
+FXRETTYPE	http_request(struct url *, const char *,
 		     struct url_stat *, struct url *, const char *);
-FILE		*http_request_body(struct url *, const char *,
+FXRETTYPE	http_request_body(struct url *, const char *,
 		     struct url_stat *, struct url *, const char *,
 		     const char *, const char *);
-FILE		*ftp_request(struct url *, const char *,
+FXRETTYPE	ftp_request(struct url *, const char *,
 		     struct url_stat *, struct url *, const char *);
 
 /*

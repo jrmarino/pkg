@@ -52,12 +52,19 @@
 #include <openssl/x509v3.h>
 #endif
 
-#include "bsd_compat.h"
 #include "fetch.h"
 #include "common.h"
 
 #ifndef INFTIM
 #define INFTIM (-1)
+#endif
+
+#ifndef __DECONST
+#define __DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+#endif
+
+#ifdef __linux__
+#include <bsd/string.h>
 #endif
 
 /*** Local data **************************************************************/
@@ -116,8 +123,12 @@ fetch_syserr(void)
 	case EPERM:
 	case EACCES:
 	case EROFS:
+#ifndef SKIP_EAUTH
 	case EAUTH:
+#endif
+#ifndef SKIP_ENEEDAUTH
 	case ENEEDAUTH:
+#endif
 		fetchLastErrCode = FETCH_AUTH;
 		break;
 	case ENOENT:
@@ -194,6 +205,8 @@ fetch_default_port(const char *scheme)
 		return (FTP_DEFAULT_PORT);
 	if (strcasecmp(scheme, SCHEME_HTTP) == 0)
 		return (HTTP_DEFAULT_PORT);
+	if (strcasecmp(scheme, SCHEME_HTTPS) == 0)
+		return (HTTPS_DEFAULT_PORT);
 	return (0);
 }
 
