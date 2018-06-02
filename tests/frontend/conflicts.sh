@@ -85,7 +85,7 @@ EOF
 	# Create bar1-1.1
 	echo "bar-1.1" > file1
 	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg bar1 bar1 1.1 "${TMPDIR}"
-	cat << EOF >> bar.ucl
+	cat << EOF >> bar1.ucl
 files: {
 	${TMPDIR}/file1: "",
 }
@@ -95,9 +95,9 @@ EOF
 		-o empty \
 		-e empty \
 		-s exit:0 \
-		pkg create -M ./bar.ucl -o ./repo/
+		pkg create -M ./bar1.ucl -o ./repo/
 
-	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg foo foo 1.1 "${TMPDIR}"
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg foo foo 1.0_1 "${TMPDIR}"
 	cat << EOF >> foo.ucl
 deps: {
 	bar1: {
@@ -125,11 +125,50 @@ EOF
 		-s exit:0 \
 		pkg -C ./pkg.conf update -f
 
+OUTPUT="Updating local repository catalogue...
+local repository is up to date.
+All repositories are up to date.
+Checking for upgrades (2 candidates):  done
+Processing candidates (2 candidates):  done
+Checking integrity... done (2 conflicting)
+  - bar1-1.1 conflicts with bar-2.0 on ${TMPDIR}/file1
+  - bar1-1.1 conflicts with bar-1.0 on ${TMPDIR}/file1
+Cannot solve problem using SAT solver, trying another plan
+Checking integrity... done (0 conflicting)
+The following 3 package(s) will be affected (of 0 checked):
+
+Installed packages to be REMOVED:
+	bar-1.0
+
+New packages to be INSTALLED:
+	bar1: 1.1
+
+Installed packages to be UPGRADED:
+	foo: 1.0 -> 1.0_1
+
+Number of packages to be removed: 1
+Number of packages to be installed: 1
+Number of packages to be upgraded: 1
+[1/3] Deinstalling bar-1.0...
+[1/3] Deleting files for bar-1.0:  done
+[2/3] Installing bar1-1.1...
+[2/3] Extracting bar1-1.1:  done
+[3/3] Upgrading foo from 1.0 to 1.0_1...
+"
+
 	atf_check \
-		-o match:"Upgrading bar from 1\.0 to 2\.0" \
+		-o inline:"${OUTPUT}" \
 		-e empty \
 		-s exit:0 \
 		pkg -C ./pkg.conf upgrade -y
+
+	atf_check \
+		-o match:"foo-1.0_1" \
+		-o match:"bar1-1.1" \
+		-o not-match:"bar-2.0" \
+		-e empty \
+		-s exit:0 \
+		pkg info
 }
 
 find_conflicts_body() {
