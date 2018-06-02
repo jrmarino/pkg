@@ -56,8 +56,8 @@
 #endif
 
 #ifdef __sun__
-#define	SKIP_EAUTH
-#define	SKIP_ENEEDAUTH
+#define SKIP_EAUTH
+#define SKIP_ENEEDAUTH
 #define MAXLOGNAME	17
 #endif
 

@@ -43,6 +43,7 @@
 #include <utlist.h>
 #include <utstring.h>
 #include <ucl.h>
+#include <fetch.h>
 
 #include "xmalloc.h"
 #include "private/utils.h"
@@ -530,7 +531,7 @@ struct pkg_repo {
 	};
 	signature_t signature_type;
 	char *fingerprints;
-	FILE *ssh;
+	FXRETTYPE ssh;
 
 	struct fingerprint *trusted_fp;
 	struct fingerprint *revoked_fp;

@@ -60,7 +60,9 @@
  * SUCH DAMAGE.
  */
 #ifdef __sun__
-#define	__EXTENSIONS__
+# ifndef __EXTENSIONS__
+# define __EXTENSIONS__
+# endif
 #else
 #define _XOPEN_SOURCE
 #endif

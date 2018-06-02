@@ -49,7 +49,7 @@
 
 static void
 gethttpmirrors(struct pkg_repo *repo, const char *url) {
-	FILE *f;
+	FXRETTYPE f;
 	char *line = NULL;
 	size_t linecap = 0;
 	ssize_t linelen;
@@ -59,7 +59,7 @@ gethttpmirrors(struct pkg_repo *repo, const char *url) {
 	if ((f = fetchGetURL(url, "")) == NULL)
 		return;
 
-	while ((linelen = getline(&line, &linecap, f)) > 0) {
+	while ((linelen = FXGETLINE(&line, &linecap, f)) > 0) {
 		if (strncmp(line, "URL:", 4) == 0) {
 			/* trim '\n' */
 			if (line[linelen - 1] == '\n')
@@ -79,7 +79,7 @@ gethttpmirrors(struct pkg_repo *repo, const char *url) {
 			}
 		}
 	}
-	fclose(f);
+	FXCLOSE(f);
 	return;
 }
 
@@ -168,8 +168,13 @@ pkg_fetch_file(struct pkg_repo *repo, const char *url, char *dest, time_t t,
 	return (retcode);
 }
 
+#ifdef __sun__
+static ssize_t
+ssh_read(void *data, void *buf, size_t len)
+#else
 static int
 ssh_read(void *data, char *buf, int len)
+#endif
 {
 	struct pkg_repo *repo = (struct pkg_repo *) data;
 	struct timeval now, timeout, delta;
@@ -300,8 +305,13 @@ ssh_writev(int fd, struct iovec *iov, int iovcnt)
 	return (total);
 }
 
+#ifdef __sun__
+static ssize_t
+ssh_write(void *data, const void *buf, size_t l)
+#else
 static int
 ssh_write(void *data, const char *buf, int l)
+#endif
 {
 	struct pkg_repo *repo = (struct pkg_repo *)data;
 	struct iovec iov;
@@ -345,6 +355,15 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 	int sshout[2];
 	int retcode = EPKG_FATAL;
 	const char *argv[4];
+#ifdef __sun__
+	es_cookie_io_functions_t ssh_cookie_functions =
+	{
+	  ssh_read,
+	  ssh_write,
+	  NULL,
+	  ssh_close
+	};
+#endif
 
 	ssh_args = pkg_object_string(pkg_config_get("PKG_SSH_ARGS"));
 
@@ -409,16 +428,16 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 		set_nonblocking(repo->sshio.in);
 
 #ifdef __sun__
-		pkg_emit_errno("Solaris 10 can't support this function", "start_ssh");
-		goto ssh_cleanup;
+		repo->ssh = es_fopencookie ((void *)repo, "rb", ssh_cookie_functions);
 #else
 		repo->ssh = funopen(repo, ssh_read, ssh_write, NULL, ssh_close);
+#endif
 		if (repo->ssh == NULL) {
 			pkg_emit_errno("Failed to open stream", "start_ssh");
 			goto ssh_cleanup;
 		}
 
-		if (getline(&line, &linecap, repo->ssh) > 0) {
+		if (FXGETLINE(&line, &linecap, repo->ssh) > 0) {
 			if (strncmp(line, "ok:", 3) != 0) {
 				pkg_debug(1, "SSH> server rejected, got: %s", line);
 				goto ssh_cleanup;
@@ -428,11 +447,10 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 			pkg_debug(1, "SSH> nothing to read, got: %s", line);
 			goto ssh_cleanup;
 		}
-#endif
 	}
 	pkg_debug(1, "SSH> get %s %" PRIdMAX "", u->doc, (intmax_t)u->ims_time);
-	fprintf(repo->ssh, "get %s %" PRIdMAX "\n", u->doc, (intmax_t)u->ims_time);
-	if ((linelen = getline(&line, &linecap, repo->ssh)) > 0) {
+	FXFPRINTF(repo->ssh, "get %s %" PRIdMAX "\n", u->doc, (intmax_t)u->ims_time);
+	if ((linelen = FXGETLINE(&line, &linecap, repo->ssh)) > 0) {
 		if (line[linelen -1 ] == '\n')
 			line[linelen -1 ] = '\0';
 
@@ -455,7 +473,7 @@ start_ssh(struct pkg_repo *repo, struct url *u, off_t *sz)
 
 ssh_cleanup:
 	if (retcode == EPKG_FATAL && repo->ssh != NULL) {
-		fclose(repo->ssh);
+		FXCLOSE(repo->ssh);
 		repo->ssh = NULL;
 	}
 	if (cmd != NULL)
@@ -470,7 +488,7 @@ int
 pkg_fetch_file_to_fd(struct pkg_repo *repo, const char *url, int dest,
     time_t *t, ssize_t offset, int64_t size)
 {
-	FILE		*remote = NULL;
+	FXRETTYPE	remote = NULL;
 	struct url	*u = NULL;
 	struct url_stat	 st;
 	struct pkg_kv	*kv, *kvtmp;
@@ -679,7 +697,7 @@ pkg_fetch_file_to_fd(struct pkg_repo *repo, const char *url, int dest,
 	left = sizeof(buf);
 	if (sz > 0)
 		left = sz - done;
-	while ((r = fread(buf, 1, left < buflen ? left : buflen, remote)) > 0) {
+	while ((r = FXFREAD(buf, 1, left < buflen ? left : buflen, remote)) > 0) {
 		if (write(dest, buf, r) != r) {
 			pkg_emit_errno("write", "");
 			retcode = EPKG_FATAL;
@@ -704,7 +722,7 @@ pkg_fetch_file_to_fd(struct pkg_repo *repo, const char *url, int dest,
 	}
 	pkg_emit_fetch_finished(url);
 
-	if (strcmp(u->scheme, "ssh") != 0 && ferror(remote)) {
+	if (strcmp(u->scheme, "ssh") != 0 && FXERROR(remote)) {
 		pkg_emit_error("%s: %s", url, fetchLastErrString);
 		retcode = EPKG_FATAL;
 		goto cleanup;
@@ -725,7 +743,7 @@ cleanup:
 
 	if (u != NULL) {
 		if (remote != NULL &&  repo != NULL && remote != repo->ssh)
-			fclose(remote);
+			FXCLOSE(remote);
 	}
 
 	if (retcode == EPKG_OK) {
