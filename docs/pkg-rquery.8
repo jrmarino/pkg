@@ -14,7 +14,7 @@
 .\"
 .\"     @(#)pkg.8
 .\"
-.Dd March 7, 2016
+.Dd July 15, 2018
 .Dt PKG-RQUERY 8
 .Os
 .Sh NAME
@@ -22,46 +22,23 @@
 .Nd query information from remote repositories
 .Sh SYNOPSIS
 .Nm
-.Sm Fl I |
-.Ao query-format Ac Sm Ao pkg-name Ac
+.Fl I Ns | Ns Ar query-format
+.Ar pkg-name
 .Nm
 .Op Fl aU
 .Op Fl r Ar reponame
-.Sm Fl I |
-.Ao query-format Ac Sm
+.Fl I Ns | Ns Ar query-format
 .Nm
 .Op Fl U
-.Fl e Ao evaluation-condition Ac
+.Fl e Ar evaluation-condition
 .Op Fl r Ar reponame
-.Sm Fl I |
-.Ao query-format Ac Sm
+.Fl I Ns | Ns Ar query-format
 .Nm
 .Op Fl U
 .Op Fl Cgix
 .Op Fl r Ar reponame
-.Sm Fl I |
-.Ao query-format Ac Sm Ao pattern Ac Ao ... Ac
-.Pp
-.Nm
-.Sm Cm --index-line |
-.Ao query-format Ac Sm Ao pkg-name Ac
-.Nm
-.Op Cm --{all,no-repo-update}
-.Op Cm --repository Ar reponame
-.Sm Cm --index-line |
-.Ao query-format Ac Sm
-.Nm
-.Op Cm --no-repo-update
-.Cm --evaluate Ao evaluation-condition Ac
-.Op Cm --repository Ar reponame
-.Sm Cm --index-line |
-.Ao query-format Ac Sm
-.Nm
-.Op Cm --no-repo-update
-.Op Cm --{case-sensitive,glob,case-insensitive,regex}
-.Op Cm --repository Ar reponame
-.Sm Cm --index-line |
-.Ao query-format Ac Sm Ao pattern Ac Ao ... Ac
+.Fl I Ns | Ns Ar query-format
+.Ar pattern ...
 .Sh DESCRIPTION
 .Nm
 is used for displaying information about remote packages.
@@ -72,38 +49,40 @@ is run by a user ID with write access to the package database,
 unless disabled by the
 .Fl U
 flag or setting
-.Cm REPO_AUTOUPDATE
+.Va REPO_AUTOUPDATE
 to
-.Sy NO
+.Dq Li NO
 in
 .Xr pkg.conf 5 .
 .Sh OPTIONS
 The following options are supported by
 .Nm :
-.Bl -tag -width repository
-.It Fl a , Cm --all
+.Bl -tag -width Ds
+.It Fl a , Fl -all
 Match all packages from the database.
-.It Fl C , Cm --case-sensitive
+.It Fl C , Fl -case-sensitive
 Make the standard or the regular expression
-.Fl ( x )
+.Pq Fl x
 matching against
 .Ar pkg-name
 case sensitive.
-.It Fl e , Cm --evaluate
+.It Fl e Ar evaluation-condition , Fl -evaluate Ar evaluation-condition
 Match packages using the given
 .Ar evaluation-condition.
-See EVALUATION FORMAT for details.
-.It Fl I , Cm --index-line
+See
+.Sx EVALUATION FORMAT
+for details.
+.It Fl I , Fl -index-line
 Print out the corresponding line from the ports
 .Pa INDEX
 file for each matched package.
 This option is a shorthand
-.Ao query-format Ac
+.Ar query-format
 argument.
 Only the first query format (including the
 .Fl I
 option) on the command line will be interpreted.
-.It Fl r Ar reponame , Cm --repository Ar reponame
+.It Fl r Ar reponame , Fl -repository Ar reponame
 Query for data about packages from only the named repository,
 irrespective of the configured
 .Dq active
@@ -112,40 +91,46 @@ status from
 By default all repository catalogues marked
 .Dq active
 are queried.
-.It Fl g , Cm --glob
+.It Fl g , Fl -glob
 Treat
-.Ao pattern Ac
+.Ar pattern
 as a glob pattern.
-.It Fl i , Cm --case-insensitive
+.It Fl i , Fl -case-insensitive
 Make the standard or regular expression
-.Fl ( x )
+.Pq Fl x
 matching against
 .Ar pkg-name
 case insensitive.
 This is the default, unless modified by setting
-.Ev CASE_SENSITIVE_MATCH
-to true in
+.Va CASE_SENSITIVE_MATCH
+to
+.Dq Li true
+in
 .Pa pkg.conf .
-.It Fl U , Cm --no-repo-update
+.It Fl U , Fl -no-repo-update
 Suppress the automatic update of the local copy of the repository catalogue
 from remote.
 Automatic repository catalogue updates are only attempted when the
 effective UID of the process has write access to the package database.
 Otherwise they are silently ignored.
-.It Fl x , Cm --regex
+.It Fl x , Fl -regex
 Treat
-.Ao pattern Ac
-as a regular expression according to the "modern" or "extended" syntax
-of
+.Ar pattern
+as a regular expression according to the
+.Dq modern
+or
+.Dq extended
+syntax of
 .Xr re_format 7 .
 .El
 .Sh QUERY FORMAT
-There are two types of keywords for the query format: the multiline and the normal
-one. Only one type of multiline pattern is accepted for a given query.
+There are two types of keywords for the query format: the multiline and the
+normal one.
+Only one type of multiline pattern is accepted for a given query.
 .Ss Normal patterns:
-.Bl -tag -width F1
+.Bl -tag -width Ds
 .It Cm \&%R
-Name of the repository package is in
+Name of the repository the package is in
 .It Cm \&%n
 Name of the matched package
 .It Cm \&%v
@@ -165,37 +150,28 @@ Home page of the matched package
 .It Cm \&%q
 Architecture of the matched package
 .It Cm \&%l
-license logic of the matched package - nothing for single, & for AND, and | for OR
-.It Cm \&%s Ns Op bh
+License logic of the matched package
+.Pp
+One of the following will be printed:
+.Bl -tag -width " single " -compact
+.It Dq single
+if the package is distributed under one license
+.It Dq and
+if the package is multi-licensed
+.It Dq or
+if the package is dual-licensed
+.El
+.It Cm \&%s Ns Op Cm bh
 The flat size of the matched package, where
 .Cm b
 is in bytes, and
 .Cm h
-is in human readable format.
+is in human readable format
 .It Cm \&%M
-message contained in the matched package
-.It Cm \&%? Ns Op drCOLBbA
+Message contained in the matched package
+.It Cm \&%? Ns Op Cm drCOLBbA
 Returns 0 if the list is empty and 1 if the list has information to display
-.Bl -tag -width indent
-.It Cm d
-for dependencies
-.It Cm r
-for reverse dependencies
-.It Cm C
-for categories
-.It Cm O
-for options
-.It Cm L
-for licenses
-.It Cm B
-for required shared libraries
-.It Cm b
-for provided shared libraries
-.It Cm A
-for annotations
-.It Cm \&%# Ns Op drCOLBbA
-Returns the number of elements in the list
-.Bl -tag -width indent
+.Bl -tag -width "d"
 .It Cm d
 for dependencies
 .It Cm r
@@ -213,11 +189,30 @@ for provided shared libraries
 .It Cm A
 for annotations
 .El
+.It Cm \&%# Ns Op Cm drCOLBbA
+Returns the number of elements in the list
+.Bl -tag -width "d"
+.It Cm d
+for dependencies
+.It Cm r
+for reverse dependencies
+.It Cm C
+for categories
+.It Cm O
+for options
+.It Cm L
+for licenses
+.It Cm B
+for required shared libraries
+.It Cm b
+for provided shared libraries
+.It Cm A
+for annotations
 .El
 .El
 .Ss Multiline patterns:
-.Bl -tag -width F1
-.It Cm \&%d Ns Op nov
+.Bl -tag -width Ds
+.It Cm \&%d Ns Op Cm nov
 Expands to the list of dependencies for the matched package, where
 .Cm n
 stands for the package name,
@@ -225,7 +220,7 @@ stands for the package name,
 for the package origin, and
 .Cm v
 for the package version.
-.It Cm \&%r Ns Op nov
+.It Cm \&%r Ns Op Cm nov
 Expands to the list of reverse dependencies for the matched package, where
 .Cm n
 stands for the package name,
@@ -235,7 +230,7 @@ for the package origin, and
 for the package version.
 .It Cm \&%C
 Expands to the list of categories the matched package belongs to.
-.It Cm \&%O Ns Op kvdD
+.It Cm \&%O Ns Op Cm kvdD
 Expands to the list of options of the matched package, where
 .Cm k
 stands for option key
@@ -253,7 +248,7 @@ Expands to the list of license(s) for the matched package.
 Expands to the list of shared libraries used by programs from the matched package.
 .It Cm \&%b
 Expands to the list of shared libraries provided by the matched package.
-.It Cm \&%A Ns Op tv
+.It Cm \&%A Ns Op Cm tv
 Expands to the list of annotations associated with the matched
 package, where
 .Cm t
@@ -263,7 +258,7 @@ stands for the annotation value.
 .El
 .Sh EVALUATION FORMAT
 .Ss Variables
-.Bl -tag -width F1
+.Bl -tag -width Ds
 .It Cm \&%n
 Name of the package (type string)
 .It Cm \&%o
@@ -293,7 +288,7 @@ See
 above for what information is used.
 .El
 .Ss Operators
-.Bl -tag -width F1
+.Bl -tag -width Ds
 .It Va var Cm ~ Ar glob
 The string value of
 .Va var
@@ -329,7 +324,7 @@ The following environment variables affect the execution of
 See
 .Xr pkg.conf 5
 for further description.
-.Bl -tag -width ".Ev NO_DESCRIPTIONS"
+.Bl -tag -width Ds
 .It Ev PKG_DBDIR
 .It Ev CASE_SENSITIVE_MATCH
 .El

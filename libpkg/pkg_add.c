@@ -834,7 +834,7 @@ pkg_extract_finalize(struct pkg *pkg)
 	struct stat st;
 	struct pkg_file *f = NULL;
 	struct pkg_dir *d = NULL;
-	char path[MAXPATHLEN + 7];
+	char path[MAXPATHLEN + 8];
 	const char *fto;
 #ifdef __sun__
 	char fullpath[MAXPATHLEN * 2];
