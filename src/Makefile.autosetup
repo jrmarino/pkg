@@ -51,7 +51,7 @@ LIBS=	\
 @if HAVE_PKG_LIBARCHIVE
 LIBS+=	@PKG_LIBARCHIVE_LDFLAGS@ @PKG_LIBARCHIVE_LIBS_STATIC@
 @else
-LIBS+=	-larchive -lbz2 -lz -llzma
+LIBS+=	-larchive -lbz2 -lz -llzma -lzstd
 @endif
 OTHER_LIBS=	-lssl -lcrypto -pthread
 @if HAVE_LIBUTIL
