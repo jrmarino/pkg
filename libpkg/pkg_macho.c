@@ -91,6 +91,10 @@ analyse_macho(struct pkg *pkg, const char *fpath,
 		const NXArchInfo *ai;
 		bool is_shlib = false;
 
+		/* All actions depend on the install name being defined. */
+		if (march->mat_install_name == NULL)
+			continue;
+
 		/* Determine the architecture name */
 		ai = NXGetArchInfoFromCpuType(march->mat_cputype, march->mat_cpusubtype);
 		if (ai == NULL) {
@@ -100,7 +104,7 @@ analyse_macho(struct pkg *pkg, const char *fpath,
 
 		/* Register non-relative libraries as provided. */
 		// MACTODO: How to handle @rpath/@loader_path/etc?
-		if (march->mat_install_name != NULL && march->mat_install_name[0] != '/') {
+		if (march->mat_install_name[0] != '/') {
 			// XXX MACTODO: To get things working, we're shoving library metadata into the library name;
 			// these should instead be added as supported attributes of package shared library declarations.
 			char *libname;
