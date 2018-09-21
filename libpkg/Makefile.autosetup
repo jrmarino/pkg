@@ -81,7 +81,7 @@ STATIC_LIBS=	@REPOS_STATIC_LIBS@ \
 		$(top_builddir)/external/blake2/libblake2.a \
 		$(top_builddir)/compat/libbsd_compat.a \
 		$(top_builddir)/external/libfetch/libfetch.a \
-		lib$(LIB).a
+		${.OBJDIR}/lib$(LIB).a
 
 @if HAVE_LIBUTIL
 LOCAL_LDFLAGS+=	-lutil
@@ -138,7 +138,7 @@ lib$(LIB)_flat.a: mergelib_script
 	   mkdir -p breakdown/$$n; \
 	   (cd breakdown/$$n && ar -x $$l); \
 	done
-	ar -cq ${.TARGET} breakdown/*
+	ar -qc ${.TARGET} breakdown/*
 
 mergelib_script: $(STATIC_LIBS)
 	@echo "CREATE lib$(LIB)_flat.a" > $@
