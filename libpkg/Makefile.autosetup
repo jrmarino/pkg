@@ -138,7 +138,7 @@ lib$(LIB)_flat.a: mergelib_script
 	   mkdir -p breakdown/$$n; \
 	   (cd breakdown/$$n && ar -x $$l); \
 	done
-	ar -qc ${.TARGET} breakdown/*
+	ar -qc ${.TARGET} breakdown/*/*.o
 
 mergelib_script: $(STATIC_LIBS) lib$(LIB).a
 	@echo "CREATE lib$(LIB)_flat.a" > $@
