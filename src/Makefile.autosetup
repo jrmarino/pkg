@@ -65,19 +65,20 @@ OTHER_LIBS+=	-lresolv
 @endif
 
 @if libabidir == libmachista
-LOCAL_LDFLAGS=	$(LIBS) $(OTHER_LIBS) -lresolv
+LOCAL_LDFLAGS=	$(LIBS:S/_flat//) $(OTHER_LIBS) -lresolv
+STATIC_LDFLAGS=	$(LIBS) $(OTHER_LIBS) -lresolv
 @else
 LOCAL_LDFLAGS=	-Wl,-Bstatic $(LIBS) -Wl,-Bdynamic $(OTHER_LIBS)
+STATIC_LDFLAGS=	-static $(LIBS) $(OTHER_LIBS)
 @endif
 
-STATIC_LDFLAGS=	$(LIBS) $(OTHER_LIBS)
 
 include $(MK)/prog.mk
 
 all: pkg-static
 
 pkg-static: $(OBJS)
-	$(CC) -o $@ $(OBJS) -static $(LDFLAGS) $(STATIC_LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(STATIC_LDFLAGS)
 
 install: $(PROG) pkg-static
 	install -d -m 755 $(DESTDIR)$(sbindir)
