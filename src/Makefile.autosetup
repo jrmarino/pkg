@@ -65,7 +65,7 @@ OTHER_LIBS+=	-lresolv
 @endif
 
 @if libabidir == libmachista
-LOCAL_LDFLAGS=	$(LIBS) $(OTHER_LIBS)
+LOCAL_LDFLAGS=	$(LIBS) $(OTHER_LIBS) -lresolv
 @else
 LOCAL_LDFLAGS=	-Wl,-Bstatic $(LIBS) -Wl,-Bdynamic $(OTHER_LIBS)
 @endif
