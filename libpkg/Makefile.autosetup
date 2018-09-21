@@ -81,7 +81,7 @@ STATIC_LIBS=	@REPOS_STATIC_LIBS@ \
 		$(top_builddir)/external/blake2/libblake2.a \
 		$(top_builddir)/compat/libbsd_compat.a \
 		$(top_builddir)/external/libfetch/libfetch.a \
-		${.OBJDIR}/lib$(LIB).a
+		# end of list
 
 @if HAVE_LIBUTIL
 LOCAL_LDFLAGS+=	-lutil
@@ -133,16 +133,16 @@ all: lib$(LIB)_flat.a
 lib$(LIB)_flat.a: mergelib_script
 	# ar -M is not portable (not supported by Mac ar)
 	# ar -M < mergelib_script
-	for l in $(STATIC_LIBS); do \
+	for l in $(STATIC_LIBS) ${.OBJDIR}/lib$(LIB).a; do \
 	   n=`basename $$l`; \
 	   mkdir -p breakdown/$$n; \
 	   (cd breakdown/$$n && ar -x $$l); \
 	done
 	ar -qc ${.TARGET} breakdown/*
 
-mergelib_script: $(STATIC_LIBS)
+mergelib_script: $(STATIC_LIBS) lib$(LIB).a
 	@echo "CREATE lib$(LIB)_flat.a" > $@
-	@for l in $(STATIC_LIBS); do \
+	@for l in $(STATIC_LIBS) lib$(LIB).a; do \
 		echo "ADDLIB $$l"; \
 	done >> $@
 	@echo "SAVE" >> $@
