@@ -353,13 +353,6 @@ meta_file(struct plist *p, char *line, struct file_attr *a, bool is_config)
 			pkg_addconfig_file(p->pkg, path, content);
 			free(content);
 		}
-	} else {
-		if (is_config) {
-			pkg_emit_error("Plist error, @config %s: not a regular "
-			    "file", line);
-			free(buf);
-			return (EPKG_FATAL);
-		}
 	}
 
 	if (S_ISDIR(st.st_mode) &&
@@ -1100,7 +1093,7 @@ parse_keywords(struct plist *plist, char *keyword, char *line)
 	}
 
 	/*
-	 * if we are it means the keyword as not been found
+	 * if we are here it means the keyword has not been found
 	 * maybe it is defined externally
 	 * let's try to find it
 	 */

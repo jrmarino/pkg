@@ -68,7 +68,11 @@ OTHER_LIBS+=	-lresolv
 LOCAL_LDFLAGS=	$(LIBS:S/_flat//) $(OTHER_LIBS) -lresolv
 STATIC_LDFLAGS=	$(LIBS) $(OTHER_LIBS) -lresolv
 @else
-LOCAL_LDFLAGS=	-Wl,-Bstatic $(LIBS) -Wl,-Bdynamic $(OTHER_LIBS)
+LOCAL_LDFLAGS=	-Wl,-Bstatic \
+		-Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive \
+		-Wl,-Bdynamic $(OTHER_LIBS) \
+		-Wl,--export-dynamic \
+		-Wl,--version-script=$(top_builddir)/libpkg/libpkg.ver
 STATIC_LDFLAGS=	-static $(LIBS) $(OTHER_LIBS)
 @endif
 
@@ -77,7 +81,11 @@ include $(MK)/prog.mk
 
 all: pkg-static
 
-pkg-static: $(OBJS)
+${OBJS}: $(top_builddir)/pkg_config.h
+
+$(PROG): $(top_builddir)/libpkg/libpkg_flat.a
+
+pkg-static: $(OBJS) $(top_builddir)/libpkg/libpkg_flat.a
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(STATIC_LDFLAGS)
 
 install: $(PROG) pkg-static

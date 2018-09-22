@@ -3,27 +3,38 @@
 . $(atf_get_srcdir)/test_environment.sh
 
 tests_init \
+	delete_all \
+	delete_pkg \
+	delete_with_directory_owned \
 	simple_delete \
-	simple_delete_prefix_ending_with_slash \
-	delete_with_directory_owned
+	simple_delete_prefix_ending_with_slash
+
+delete_all_body() {
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "foo" "foo" "1"
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "pkg" "pkg" "1"
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "test" "test" "1"
+
+	atf_check -o ignore pkg register -M foo.ucl
+	atf_check -o ignore pkg register -M pkg.ucl
+	atf_check -o ignore pkg register -M test.ucl
+
+	atf_check -o ignore pkg delete -ay
+}
+
+delete_pkg_body() {
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "pkg" "pkg" "1"
+	atf_check -o ignore pkg register -M pkg.ucl
+	atf_check -o ignore -e ignore -s exit:3 pkg delete -y pkg
+	atf_check -o ignore -e ignore pkg delete -yf pkg
+}
 
 simple_delete_body() {
 	touch file1
 	mkdir dir
 	touch dir/file2
 
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "test" "test" "1" "${TMPDIR}"
 	cat << EOF >> test.ucl
-name: test
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: ${TMPDIR}
-desc: <<EOD
-Yet another test
-EOD
 files: {
     ${TMPDIR}/file1: "",
     ${TMPDIR}/dir/file2: "",
@@ -53,18 +64,8 @@ simple_delete_prefix_ending_with_slash_body() {
 	mkdir dir
 	touch dir/file2
 
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "test" "test" "1" "${TMPDIR}/"
 	cat << EOF >> test.ucl
-name: test
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: ${TMPDIR}/
-desc: <<EOD
-Yet another test
-EOD
 files: {
     ${TMPDIR}/file1: "",
     ${TMPDIR}/dir/file2: "",
@@ -94,36 +95,16 @@ delete_with_directory_owned_body() {
 	mkdir dir
 	touch dir/file2
 
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "test" "test" "1" "${TMPDIR}/"
 	cat << EOF >> test.ucl
-name: test
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: ${TMPDIR}/
-desc: <<EOD
-Yet another test
-EOD
 files: {
     ${TMPDIR}/file1: "",
     ${TMPDIR}/dir/file2: "",
 }
 EOF
 
+	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg "test2" "test2" "1" "${TMPDIR}/"
 	cat << EOF >> test2.ucl
-name: test2
-origin: test
-version: 1
-maintainer: test
-categories: [test]
-comment: a test
-www: http://test
-prefix: ${TMPDIR}/
-desc: <<EOD
-Yet another test
-EOD
 directories: {
     ${TMPDIR}/dir: 'y',
 }
