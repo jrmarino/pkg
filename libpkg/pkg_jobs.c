@@ -2196,7 +2196,19 @@ pkg_jobs_fetch(struct pkg_jobs *j)
 	if (dlsize == 0)
 		return (EPKG_OK);
 
-#ifdef HAVE_FSTATFS
+#ifdef __sun__
+	statvfs_t fs;
+	while (statvfs(cachedir, &fs) == -1) {
+		if (errno == ENOENT) {
+			if (mkdirs(cachedir) != EPKG_OK)
+				return (EPKG_FATAL);
+		} else {
+			pkg_emit_errno("statvfs", cachedir);
+			return (EPKG_FATAL);
+		}
+	}
+	fs_avail = fs.f_bsize * (int64_t)fs.f_bavail;
+#  ifdef HAVE_FSTATFS
 	struct statfs fs;
 	while (statfs(cachedir, &fs) == -1) {
 		if (errno == ENOENT) {
@@ -2208,7 +2220,7 @@ pkg_jobs_fetch(struct pkg_jobs *j)
 		}
 	}
 	fs_avail = fs.f_bsize * (int64_t)fs.f_bavail;
-#elif defined(HAVE_SYS_STATVFS_H)
+#  elif defined(HAVE_SYS_STATVFS_H)
 	struct statvfs fs;
 	while (statvfs(cachedir, &fs) == -1) {
 		if (errno == ENOENT) {
@@ -2220,6 +2232,7 @@ pkg_jobs_fetch(struct pkg_jobs *j)
 		}
 	}
 	fs_avail = fs.f_bsize * (int64_t)fs.f_bavail;
+#  endif
 #endif
 
 	if (fs_avail != -1 && dlsize > fs_avail) {

@@ -30,6 +30,10 @@
 #include "pkg_config.h"
 #endif
 
+#ifdef __sun__
+# define _POSIX_PTHREAD_SEMANTICS 1
+#endif
+
 #include <stdlib.h>	/* for arc4random_uniform */
 #include <archive.h>
 #include <archive_entry.h>

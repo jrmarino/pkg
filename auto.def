@@ -184,25 +184,8 @@ if {[string match *-darwin* [get-define host]]} {
 	define libabidir libmachista
 } else {
 # libelf
-	cc-with { -includes { sys/types.h }} {
-		cc-check-includes elf-hints.h sys/elf_common.h
-	}
-
-	if {[cc-check-includes gelf.h libelf.h]} {
-		cc-with { -libs { -lelf } } {
-			if {[cc-check-functions gelf_getehdr]} {
-				define-feature libelf
-				define-append EXTRA_LIBS -lelf
-				define libabidir ""
-			} else {
-				define-feature libelf 0
-				define libabidir "libelf"
-			}
-		}
-	} else {
-		define-feature libelf 0
-		define libabidir "libelf"
-	}
+	define-feature libelf 0
+	define libabidir "libelf"
 }
 
 cc-with { -libs { -ljail} } {

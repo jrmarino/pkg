@@ -318,8 +318,8 @@ packing_set_format(struct archive *a, pkg_formats format)
 	case TZS:
 		if (archive_write_add_filter_zstd(a) == ARCHIVE_OK)
 			return ("tzst");
-		else
-			pkg_emit_error(notsupp_fmt, "zstd", "xz");
+		pkg_emit_error(notsupp_fmt, "zstd", "xz");
+		/* FALLTHRU */
 	case TXZ:
 		if (archive_write_add_filter_xz(a) == ARCHIVE_OK)
 			return ("txz");

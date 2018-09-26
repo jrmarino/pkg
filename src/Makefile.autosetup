@@ -71,7 +71,7 @@ LOCAL_LDFLAGS=	-Wl,-Bstatic \
 		$(LIBS) \
 		-Wl,-Bdynamic $(OTHER_LIBS) \
 		-Wl,--export-dynamic \
-		-Wl,--version-script=$(top_builddir)/libpkg/libpkg.ver
+		-Wl,--version-script,$(top_builddir)/libpkg/libpkg.ver
 STATIC_LDFLAGS=	-static $(LIBPKGFLAT) $(LIBS) $(OTHER_LIBS)
 @endif
 
