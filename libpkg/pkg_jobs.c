@@ -2208,6 +2208,7 @@ pkg_jobs_fetch(struct pkg_jobs *j)
 		}
 	}
 	fs_avail = fs.f_bsize * (int64_t)fs.f_bavail;
+#else
 #  ifdef HAVE_FSTATFS
 	struct statfs fs;
 	while (statfs(cachedir, &fs) == -1) {
