@@ -72,7 +72,7 @@ STATIC_LDFLAGS=	$(LIBPKGFLAT) \
 		$(PREFIX)/lib/libzstd.a \
 		$(PREFIX)/lib/libssl.a \
 		$(PREFIX)/lib/libcrypto.a \
-		-lm pthread -lresolv
+		-lm -pthread -lresolv
 @else
 LOCAL_LDFLAGS=	-Wl,-Bstatic \
 		-Wl,--whole-archive $(LIBPKGFLAT) -Wl,--no-whole-archive \
