@@ -2017,9 +2017,13 @@ pkg_jobs_execute(struct pkg_jobs *j)
 				if (j->patterns->match == MATCH_ALL) {
 					continue;
 				} else {
+					/*
+					 * Like FreeBSD, skip request to uninstall pkg itself.
+					 * Unlike FreeBSD, don't mark this attempt as a fatal error.
+					 */
 					pkg_emit_error("Cannot delete pkg itself without force flag");
-					retcode = EPKG_FATAL;
-					goto cleanup;
+					retcode = EPKG_OK;
+					break;
 				}
 			}
 			/*
