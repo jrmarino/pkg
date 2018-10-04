@@ -637,7 +637,7 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 			int ofl;
 			int st = SOCK_DGRAM;
 
-#ifdef HAVE_DECL_SOCK_SEQPACKET
+#if defined(HAVE_DECL_SOCK_SEQPACKET) && !defined(__APPLE__)
 			st = SOCK_SEQPACKET;
 #endif
 			if (socketpair(AF_UNIX, st, 0, cur_pipe) == -1) {
