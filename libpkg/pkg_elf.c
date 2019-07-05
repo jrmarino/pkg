@@ -724,81 +724,14 @@ aeabi_parse_arm_attributes(void *data, size_t length)
 static bool
 elf_note_analyse(Elf_Data *data, GElf_Ehdr *elfhdr, struct elf_info *ei)
 {
-	Elf *elf = NULL;
-	GElf_Ehdr elfhdr;
-	GElf_Shdr shdr;
-	Elf_Data *data;
-	Elf_Scn *scn = NULL;
-	int fd;
-	int version_style = 1;
-#ifndef __sun__
 	Elf_Note note;
-	char *src = NULL;
-	char invalid_osname[] = "Unknown";
-#endif
-	char *osname;
-	uint32_t version = 0;
-	int ret = EPKG_OK;
-	const char *arch, *abi, *endian_corres_str, *wordsize_corres_str, *fpu;
-	const char *path;
+	char *src;
+	uint32_t gnu_abi_tag[4];
 	char *note_os[6] = {"Linux", "GNU", "Solaris", "FreeBSD", "NetBSD", "Syllable"};
 	char *(*pnote_os)[6] = &note_os;
-	uint32_t gnu_abi_tag[4] = { 0, 0, 0, 0 };
-
-	path = getenv("ABI_FILE");
-	if (path == NULL)
-#ifdef __sun__
-		path = _PATH_LIBC64;
-#else
-		path = _PATH_BSHELL;
-#endif
-
-	if (elf_version(EV_CURRENT) == EV_NONE) {
-		pkg_emit_error("ELF library initialization failed: %s",
-		    elf_errmsg(-1));
-		return (EPKG_FATAL);
-	}
-
-	if ((fd = open(path, O_RDONLY)) < 0) {
-		pkg_emit_errno("open", _PATH_BSHELL);
-		snprintf(dest, sz, "%s", "unknown");
-		return (EPKG_FATAL);
-	}
-
-	if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
-		ret = EPKG_FATAL;
-		pkg_emit_error("elf_begin() failed: %s.", elf_errmsg(-1));
-		goto cleanup;
-	}
-
-	if (gelf_getehdr(elf, &elfhdr) == NULL) {
-		ret = EPKG_FATAL;
-		pkg_emit_error("getehdr() failed: %s.", elf_errmsg(-1));
-		goto cleanup;
-	}
-
-
-#ifdef __sun__
-	/* hardcode Solaris:10 */
-	osname = (*pnote_os)[2];
-	version = 10 * 100000;
-#else
-	while ((scn = elf_nextscn(elf, scn)) != NULL) {
-		if (gelf_getshdr(scn, &shdr) != &shdr) {
-			ret = EPKG_FATAL;
-			pkg_emit_error("getshdr() failed: %s.", elf_errmsg(-1));
-			goto cleanup;
-		}
-
-		if (shdr.sh_type == SHT_NOTE)
-			break;
-	}
-
-	if (scn == NULL) {
-		ret = EPKG_FATAL;
-		pkg_emit_error("failed to get the note section");
-		goto cleanup;
-	}
+	char invalid_osname[] = "Unknown";
+	uint32_t version = 0;
+	int version_style = 1;
 
 	src = data->d_buf;
 
@@ -863,7 +796,6 @@ elf_note_analyse(Elf_Data *data, GElf_Ehdr *elfhdr, struct elf_info *ei)
 		else
 			version = le32dec(src);
 	}
-#endif /* __sun__ */
 
 	free(ei->strversion);
 	if (version_style == 2) {
@@ -899,7 +831,11 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 	const char *abi_files[] = {
 		getenv("ABI_FILE"),
 		_PATH_UNAME,
+#ifdef __sun__
+		_PATH_LIBC64,
+#else
 		_PATH_BSHELL,
+#endif
 	};
 	struct elf_info ei;
 
@@ -907,6 +843,13 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 	memset(&ei, 0, sizeof(ei));
 	ei.osversion = osversion;
 
+#ifdef __sun__
+	/* hardcode Solaris:10, notes not inserted by sun linker */
+	constant char *solaris = "Solaris";
+	ei.osname = solaris;
+	ei.osversion = 10 * 100000;
+	xasprintf(&ei->strversion, "%d", version / 100000);
+#else
 	if (elf_version(EV_CURRENT) == EV_NONE) {
 		pkg_emit_error("ELF library initialization failed: %s",
 		    elf_errmsg(-1));
@@ -962,6 +905,7 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 		pkg_emit_error("failed to get the note section");
 		goto cleanup;
 	}
+#endif /* ELF NOTE support */
 
 	snprintf(dest, sz, "%s:%s", ei.osname, ei.strversion);
 
