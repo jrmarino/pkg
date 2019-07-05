@@ -59,7 +59,8 @@ LOCAL_CFLAGS=	-I$(top_srcdir)/compat \
 		-DPREFIX=\"$(PREFIX)\" \
 		-DHAVE_CONFIG_H
 
-LOCAL_LDFLAGS=	@REPOS_LDFLAGS@ \
+LOCAL_LDFLAGS=	@waflags@ \
+		@REPOS_LDFLAGS@ \
 		-L$(top_builddir)/external/sqlite -lsqlite_pic \
 		-L$(top_builddir)/external/libucl -lucl_pic \
 		-L$(top_builddir)/external/picosat -lpicosat_pic \
@@ -68,6 +69,7 @@ LOCAL_LDFLAGS=	@REPOS_LDFLAGS@ \
 		-L$(top_builddir)/external/blake2 -lblake2_pic \
 		-L$(top_builddir)/compat -lbsd_compat_pic \
 		-L$(top_builddir)/external/libfetch -lfetch_pic \
+		@nowaflags@ \
 		-lssl \
 		-lcrypto \
 		-lm
@@ -86,7 +88,9 @@ STATIC_LIBS=	@REPOS_STATIC_LIBS@ \
 @if HAVE_LIBUTIL
 LOCAL_LDFLAGS+=	-lutil
 @endif
-
+@if HAVE_LIBFTS
+LOCAL_LDFLAGS+=	-lfts
+@endif
 @if HAVE_LIBDL
 LOCAL_LDFLAS+= -ldl
 @endif
@@ -119,6 +123,8 @@ LOCAL_LDFLAGS+=	-lelf
 @if PKG_LIBARCHIVE_LIBS
 LOCAL_CFLAGS+=	@PKG_LIBARCHIVE_CFLAGS@
 LOCAL_LDFLAGS+=	@PKG_LIBARCHIVE_LDFLAGS@ @PKG_LIBARCHIVE_LIBS@
+@else
+LOCAL_LDFLAGS+=	-larchive
 @endif
 
 @if PKG_LIBLDNS_LIBS

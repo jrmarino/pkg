@@ -35,6 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <paths.h>
 #include <spawn.h>
 #include <stdlib.h>
@@ -59,6 +60,7 @@ pkg_script_run(struct pkg * const pkg, pkg_script type)
 	const char *argv[4];
 	char **ep;
 	int ret = EPKG_OK;
+	int fd = -1;
 	int stdin_pipe[2] = {-1, -1};
 	posix_spawn_file_actions_t action;
 	bool use_pipe = 0;
@@ -139,13 +141,14 @@ pkg_script_run(struct pkg * const pkg, pkg_script type)
 			argmax -= 1 + sizeof(*ep);
 
 			pkg_debug(3, "Scripts: executing\n--- BEGIN ---\n%s\nScripts: --- END ---", utstring_body(script_cmd));
+			posix_spawn_file_actions_init(&action);
 			if (utstring_len(script_cmd) > argmax) {
 				if (pipe(stdin_pipe) < 0) {
 					ret = EPKG_FATAL;
+					posix_spawn_file_actions_destroy(&action);
 					goto cleanup;
 				}
 
-				posix_spawn_file_actions_init(&action);
 				posix_spawn_file_actions_adddup2(&action, stdin_pipe[0],
 				    STDIN_FILENO);
 				posix_spawn_file_actions_addclose(&action, stdin_pipe[1]);
@@ -156,6 +159,16 @@ pkg_script_run(struct pkg * const pkg, pkg_script type)
 
 				use_pipe = 1;
 			} else {
+				fd = open("/dev/null", O_RDWR);
+				if (fd < 0) {
+					pkg_errno("Cannot open %s", "/dev/null");
+					ret = EPKG_FATAL;
+					posix_spawn_file_actions_destroy(&action);
+					goto cleanup;
+				}
+				posix_spawn_file_actions_adddup2(&action,
+				    fd, STDIN_FILENO);
+
 				argv[0] = _PATH_BSHELL;
 				argv[1] = "-c";
 				argv[2] = utstring_body(script_cmd);
@@ -164,15 +177,18 @@ pkg_script_run(struct pkg * const pkg, pkg_script type)
 				use_pipe = 0;
 			}
 
-			if ((error = posix_spawn(&pid, _PATH_BSHELL,
-			    use_pipe ? &action : NULL,
+			if ((error = posix_spawn(&pid, _PATH_BSHELL, &action,
 			    NULL, __DECONST(char **, argv),
 			    environ)) != 0) {
 				errno = error;
 				pkg_errno("Cannot runscript %s", map[i].arg);
+				posix_spawn_file_actions_destroy(&action);
 				goto cleanup;
 			}
+			posix_spawn_file_actions_destroy(&action);
 
+			if (fd != -1)
+				close(fd);
 			if (use_pipe) {
 				script_cmd_p = utstring_body(script_cmd);
 				script_cmd_len = utstring_len(script_cmd);

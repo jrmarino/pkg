@@ -37,11 +37,14 @@ set -x
 set -e
 
 if [ $(uname -s) = "Darwin" ]; then
-  CFLAGS="-I/usr/local/opt/libarchive/include" \
-    LDFLAGS="-L/usr/local/opt/libarchive/lib" \
-    ./configure
+  export LDFLAGS="-L/usr/local/opt/libarchive/lib"
+  export CPPFLAGS="-I/usr/local/opt/libarchive/include"
+  export CFLAGS="-I/usr/local/opt/libarchive/include"
+  ./configure
 elif [ $(uname -s) = "Linux" ]; then
   CFLAGS="-Wno-strict-aliasing -Wno-unused-result -Wno-unused-value" ./configure --with-libarchive.pc
+else
+  ./configure
 fi
 
 # Build quietly and in parallel first.  If the build fails re-run
@@ -49,4 +52,7 @@ fi
 # easier to interpret.
 make -j4 || make V=1
 
-make check
+make check || {
+	kyua report --verbose
+	exit 1
+}

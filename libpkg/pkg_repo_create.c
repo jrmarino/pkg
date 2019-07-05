@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011-2013 Baptiste Daroussin <bapt@FreeBSD.org>
+ * Copyright (c) 2011-2019 Baptiste Daroussin <bapt@FreeBSD.org>
  * Copyright (c) 2011-2012 Julien Laffaye <jlaffaye@FreeBSD.org>
  * Copyright (c) 2011-2012 Marin Atanasov Nikolov <dnaeon@gmail.com>
  * Copyright (c) 2012-2013 Matthew Seaman <matthew@FreeBSD.org>
@@ -207,12 +207,10 @@ pkg_create_repo_read_fts(struct pkg_fts_item **items, FTS *fts,
 
 static int
 pkg_create_repo_worker(struct pkg_fts_item *start, size_t nelts,
-	const char *mlfile, const char *flfile, int pip,
+	int mfd, int ffd, int pip,
 	struct pkg_repo_meta *meta)
 {
 	pid_t pid;
-	int mfd, ffd = -1;
-	bool read_files = (flfile != NULL);
 	bool legacy = (meta == NULL);
 	int flags, ret = EPKG_OK;
 	size_t cur_job = 0;
@@ -227,31 +225,11 @@ pkg_create_repo_worker(struct pkg_fts_item *start, size_t nelts,
 
 	utstring_new(b);
 
-	mfd = open(mlfile, O_APPEND|O_CREAT|O_WRONLY, 00644);
-	if (mfd == -1) {
-		pkg_emit_errno("pkg_create_repo_worker", "open");
-		utstring_free(b);
-		return (EPKG_FATAL);
-	}
-
-	if (read_files) {
-		ffd = open(flfile, O_APPEND|O_CREAT|O_WRONLY, 00644);
-		if (ffd == -1) {
-			close(mfd);
-			utstring_free(b);
-			pkg_emit_errno("pkg_create_repo_worker", "open");
-			return (EPKG_FATAL);
-		}
-	}
-
 	pid = fork();
 	switch(pid) {
 	case -1:
 		pkg_emit_errno("pkg_create_repo_worker", "fork");
 		utstring_free(b);
-		close(mfd);
-		if (read_files)
-			close(ffd);
 		return (EPKG_FATAL);
 		break;
 	case 0:
@@ -259,10 +237,6 @@ pkg_create_repo_worker(struct pkg_fts_item *start, size_t nelts,
 	default:
 		/* Parent */
 		utstring_free(b);
-		close(mfd);
-		if (read_files)
-			close(ffd);
-
 		return (EPKG_OK);
 		break;
 	}
@@ -270,7 +244,7 @@ pkg_create_repo_worker(struct pkg_fts_item *start, size_t nelts,
 	pkg_manifest_keys_new(&keys);
 	pkg_debug(1, "start worker to parse %jd packages", (intmax_t)nelts);
 
-	if (read_files)
+	if (ffd != -1)
 		flags = PKG_OPEN_MANIFEST_ONLY;
 	else
 		flags = PKG_OPEN_MANIFEST_ONLY | PKG_OPEN_MANIFEST_COMPACT;
@@ -337,7 +311,7 @@ pkg_create_repo_worker(struct pkg_fts_item *start, size_t nelts,
 
 			flock(mfd, LOCK_UN);
 
-			if (read_files) {
+			if (ffd != -1) {
 				FILE *fl;
 
 				if (flock(ffd, LOCK_EX) == -1) {
@@ -379,9 +353,6 @@ cleanup:
 	utstring_free(b);
 	write(pip, ".\n", 2);
 	close(pip);
-	close(mfd);
-	if (read_files)
-		close(ffd);
 	free(mdigest);
 
 	pkg_debug(1, "worker done");
@@ -516,17 +487,17 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 	size_t len, tasks_per_worker, ntask;
 	struct digest_list_entry *dlist = NULL, *cur_dig, *dtmp;
 	struct pollfd *pfd = NULL;
-	int cur_pipe[2], fd;
+	int cur_pipe[2], fd, outputdir_fd, mfd, ffd;
 	struct pkg_repo_meta *meta = NULL;
-	int retcode = EPKG_OK;
+	int retcode = EPKG_FATAL;
 	ucl_object_t *meta_dump;
 	FILE *mfile;
 
 	char *repopath[2];
-	char packagesite[MAXPATHLEN],
-		 filesite[MAXPATHLEN],
-		 repodb[MAXPATHLEN];
+	char repodb[MAXPATHLEN];
 	FILE *mandigests = NULL;
+
+	outputdir_fd = mfd = ffd = -1;
 
 	if (!is_dir(path)) {
 		pkg_emit_error("%s is not a directory", path);
@@ -546,6 +517,10 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 			pkg_emit_error("%s is not a directory", output_dir);
 			return (EPKG_FATAL);
 		}
+	}
+	if ((outputdir_fd = open(output_dir, O_DIRECTORY)) == -1) {
+		pkg_emit_error("Cannot open %s", output_dir);
+		return (EPKG_FATAL);
 	}
 
 	if (metafile != NULL) {
@@ -576,30 +551,23 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 
 	if ((fts = fts_open(repopath, FTS_PHYSICAL|FTS_NOCHDIR, fts_compare)) == NULL) {
 		pkg_emit_errno("fts_open", path);
-		retcode = EPKG_FATAL;
 		goto cleanup;
 	}
 
-	snprintf(packagesite, sizeof(packagesite), "%s/%s", output_dir,
-	    meta->manifests);
-	if ((fd = open(packagesite, O_CREAT|O_TRUNC|O_WRONLY, 00644)) == -1) {
-		retcode = EPKG_FATAL;
+	if ((mfd = openat(outputdir_fd, meta->manifests,
+	     O_CREAT|O_TRUNC|O_WRONLY, 00644)) == -1) {
 		goto cleanup;
 	}
-	close(fd);
 	if (filelist) {
-		snprintf(filesite, sizeof(filesite), "%s/%s", output_dir,
-		    meta->filesite);
-		if ((fd = open(filesite, O_CREAT|O_TRUNC|O_WRONLY, 00644)) == -1) {
-			retcode = EPKG_FATAL;
+		if ((ffd = openat(outputdir_fd, meta->filesite,
+		        O_CREAT|O_TRUNC|O_WRONLY, 00644)) == -1) {
 			goto cleanup;
 		}
-		close(fd);
 	}
-	snprintf(repodb, sizeof(repodb), "%s/%s", output_dir,
-	    meta->digests);
-	if ((mandigests = fopen(repodb, "w")) == NULL) {
-		retcode = EPKG_FATAL;
+	if ((fd = openat(outputdir_fd, meta->digests, O_CREAT|O_TRUNC|O_RDWR, 00644)) == -1) {
+		goto cleanup;
+	}
+	if ((mandigests = fdopen(fd, "w")) == NULL) {
 		goto cleanup;
 	}
 
@@ -610,7 +578,6 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 	if (len == 0) {
 		/* Nothing to do */
 		pkg_emit_error("No package files have been found");
-		retcode = EPKG_FATAL;
 		goto cleanup;
 	}
 
@@ -642,16 +609,14 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 #endif
 			if (socketpair(AF_UNIX, st, 0, cur_pipe) == -1) {
 				pkg_emit_errno("pkg_create_repo", "pipe");
-				retcode = EPKG_FATAL;
 				goto cleanup;
 			}
 
 			if (pkg_create_repo_worker(fts_start, cur_jobs,
-					packagesite, (filelist ? filesite : NULL), cur_pipe[1],
+					mfd, ffd, cur_pipe[1],
 					meta) == EPKG_FATAL) {
 				close(cur_pipe[0]);
 				close(cur_pipe[1]);
-				retcode = EPKG_FATAL;
 				goto cleanup;
 			}
 
@@ -692,7 +657,6 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 				continue;
 			}
 			else {
-				retcode = EPKG_FATAL;
 				goto cleanup;
 			}
 		}
@@ -747,7 +711,14 @@ pkg_create_repo(char *path, const char *output_dir, bool filelist,
 	else {
 		pkg_emit_notice("cannot create metafile at %s", repodb);
 	}
+	retcode = EPKG_OK;
 cleanup:
+	if (outputdir_fd != -1)
+		close(outputdir_fd);
+	if (mfd != -1)
+		close(mfd);
+	if (ffd != -1)
+		close(ffd);
 	HASH_ITER (hh, conflicts, curcb, tmpcb) {
 		DL_FREE(curcb->conflicts, pkg_conflict_free);
 		kh_destroy_pkg_conflicts(curcb->conflictshash);

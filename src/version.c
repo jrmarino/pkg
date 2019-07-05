@@ -308,6 +308,9 @@ hash_indexfile(const char *indexfilename)
 		version = strsep(&l, "|");
 		name = version;
 		version = strrchr(version, '-');
+		if (version == NULL)
+			errx(EX_IOERR, "Invalid INDEX file format: %s",
+			    indexfilename);
 		version[0] = '\0';
 		version++;
 
@@ -691,6 +694,9 @@ validate_origin(const char *portsdir, const char *origin)
 
 	buf = strrchr(origin, '/');
 	buf++;
+
+	if (strcmp(origin, "base") == 0)
+		return (false);
 
 	k = kh_get_ports(cat->ports, buf);
 

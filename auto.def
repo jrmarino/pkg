@@ -4,9 +4,9 @@
 use cc cc-lib cc-shared pkg-config
 
 set maj_ver 1
-set med_ver 10
-set min_ver 99
-set dev_ver 10
+set med_ver 11
+set min_ver 1
+set dev_ver 0
 define PKG_API [expr $maj_ver * 1000000 + $med_ver * 1000 + $min_ver]
 define VERSION $maj_ver.$med_ver.$min_ver[expr {$dev_ver ? ".$dev_ver" : ""}]
 
@@ -49,6 +49,8 @@ if {[string match *-linux* [get-define host]]} {
 			user-error "Unable to find libbsd"
 		}
 	}
+} else {
+	define-feature static
 }
 
 if {![opt-bool with-libarchive.pc]} {
@@ -140,6 +142,15 @@ cc-with { -includes { libutil.h }} {
 	if {[cc-check-decls humanize_number]} {
 	}
 }
+
+if {![cc-check-functions fts_open]} {
+	cc-with { -libs { -lfts }} {
+		if {[cc-check-functions fts_open]} {
+			define-feature LIBFTS
+		}
+	}
+}
+
 if {[get-define HAVE_DECL_HUMANIZE_NUMBER] eq 1} {
 	cc-with { -libs { -lutil }} {
 		if {[cc-check-functions humanize_number]} {
@@ -182,10 +193,14 @@ foreach header [list endian.h sys/endian.h] {
 
 if {[string match *-darwin* [get-define host]]} {
 	define libabidir libmachista
+	define waflags ""
+	define nowaflags ""
 } else {
 # libelf
 	define-feature libelf 0
 	define libabidir "libelf"
+	define waflags "-Wl,-whole-archive"
+	define nowaflags "-Wl,-no-whole-archive"
 }
 
 cc-with { -libs { -ljail} } {

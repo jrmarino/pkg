@@ -15,7 +15,7 @@
 .\"     @(#)pkg.1
 .\" $FreeBSD$
 .\"
-.Dd October 06, 2017
+.Dd February 25, 2019
 .Dt PKG.CONF 5
 .Os
 .Sh NAME
@@ -121,7 +121,7 @@ Makes certain errors immediately fatal.
 Adds various warnings and
 suggestions to the output of
 .Xr pkg 1
-as an aide to port maintainers, including indicating when the port
+as an aid to port maintainers, including indicating when the port
 might be marked as architecture independent.
 Default: NO.
 .It Cm EVENT_PIPE: string
@@ -159,7 +159,7 @@ will be searched instead.
 Default: not set.
 .It Cm INDEXFILE: string
 The filename of the ports index, searched for in
-.Cm INDEXFILE
+.Cm INDEXDIR
 or
 .Cm PORTSDIR .
 Default: INDEX-N where

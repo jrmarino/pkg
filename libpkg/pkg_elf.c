@@ -72,6 +72,8 @@
 #define NT_ABI_TAG 1
 #endif
 
+#define _PATH_UNAME "/usr/bin/uname"
+
 /* FFR: when we support installing a 32bit package on a 64bit host */
 #define _PATH_ELF32_HINTS       "/var/run/ld-elf32.so.hints"
 
@@ -81,6 +83,12 @@
 
 static const char * elf_corres_to_string(const struct _elf_corres* m, int e);
 static int elf_string_to_corres(const struct _elf_corres* m, const char *s);
+
+struct elf_info {
+	char *osname;
+	char *strversion;
+	int *osversion;
+};
 
 static int
 filter_system_shlibs(const char *name, char *path, size_t pathlen)
@@ -713,8 +721,8 @@ aeabi_parse_arm_attributes(void *data, size_t length)
 #undef MOVE
 }
 
-static int
-pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
+static bool
+elf_note_analyse(Elf_Data *data, GElf_Ehdr *elfhdr, struct elf_info *ei)
 {
 	Elf *elf = NULL;
 	GElf_Ehdr elfhdr;
@@ -792,14 +800,14 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 		goto cleanup;
 	}
 
-	data = elf_getdata(scn, NULL);
 	src = data->d_buf;
+
 	while ((uintptr_t)src < ((uintptr_t)data->d_buf + data->d_size)) {
 		memcpy(&note, src, sizeof(Elf_Note));
 		src += sizeof(Elf_Note);
 		if ((strncmp ((const char *) src, "FreeBSD", note.n_namesz) == 0) ||
 		    (strncmp ((const char *) src, "DragonFly", note.n_namesz) == 0) ||
- 		    (strncmp ((const char *) src, "NetBSD", note.n_namesz) == 0) ||
+		    (strncmp ((const char *) src, "NetBSD", note.n_namesz) == 0) ||
 		    (note.n_namesz == 0)) {
 			if (note.n_type == NT_VERSION) {
 				version_style = 1;
@@ -815,10 +823,9 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 		src += roundup2(note.n_namesz + note.n_descsz, 4);
 	}
 	if ((uintptr_t)src >= ((uintptr_t)data->d_buf + data->d_size)) {
-		ret = EPKG_FATAL;
-		pkg_emit_error("failed to find the version elf note");
-		goto cleanup;
+		return (false);
 	}
+	free(ei->osname);
 	if (version_style == 2) {
 		/*
 		 * NT_GNU_ABI_TAG
@@ -830,7 +837,7 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 		 * word 3: subminor version of the ABI
 		 */
 		src += roundup2(note.n_namesz, 4);
-		if (elfhdr.e_ident[EI_DATA] == ELFDATA2MSB) {
+		if (elfhdr->e_ident[EI_DATA] == ELFDATA2MSB) {
 			for (int wdndx = 0; wdndx < 4; wdndx++) {
 				gnu_abi_tag[wdndx] = be32dec(src);
 				src += 4;
@@ -842,41 +849,126 @@ pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
 			}
 		}
 		if (gnu_abi_tag[0] < 6)
-			osname = (*pnote_os)[gnu_abi_tag[0]];
+			ei->osname = xstrdup((*pnote_os)[gnu_abi_tag[0]]);
 		else
-			osname = invalid_osname;
+			ei->osname = xstrdup(invalid_osname);
 	} else {
 		if (note.n_namesz == 0)
-			osname = invalid_osname;
+			ei->osname = xstrdup(invalid_osname);
 		else
-			osname = src;
+			ei->osname = xstrdup(src);
 		src += roundup2(note.n_namesz, 4);
-		if (elfhdr.e_ident[EI_DATA] == ELFDATA2MSB)
+		if (elfhdr->e_ident[EI_DATA] == ELFDATA2MSB)
 			version = be32dec(src);
 		else
 			version = le32dec(src);
 	}
 #endif /* __sun__ */
 
+	free(ei->strversion);
+	if (version_style == 2) {
+		xasprintf(&ei->strversion, "%d.%d.%d", gnu_abi_tag[1],
+		    gnu_abi_tag[2], gnu_abi_tag[3]);
+	} else {
+		if (ei->osversion != NULL)
+			*ei->osversion = version;
+#if defined(__DragonFly__)
+		xasprintf(&ei->strversion, "%d.%d", version / 100000, (((version / 100 % 1000)+1)/2)*2);
+#elif defined(__NetBSD__)
+		xasprintf(&ei->strversion, "%d", (version + 1000000) / 100000000);
+#else
+		xasprintf(&ei->strversion, "%d", version / 100000);
+#endif
+	}
+
+	return (true);
+}
+
+static int
+pkg_get_myarch_elfparse(char *dest, size_t sz, int *osversion)
+{
+	Elf *elf = NULL;
+	GElf_Ehdr elfhdr;
+	GElf_Shdr shdr;
+	Elf_Data *data;
+	Elf_Scn *scn = NULL;
+	int fd, i;
+	int ret = EPKG_OK;
+	const char *arch, *abi, *endian_corres_str, *wordsize_corres_str, *fpu;
+
+	const char *abi_files[] = {
+		getenv("ABI_FILE"),
+		_PATH_UNAME,
+		_PATH_BSHELL,
+	};
+	struct elf_info ei;
+
+	arch = NULL;
+	memset(&ei, 0, sizeof(ei));
+	ei.osversion = osversion;
+
+	if (elf_version(EV_CURRENT) == EV_NONE) {
+		pkg_emit_error("ELF library initialization failed: %s",
+		    elf_errmsg(-1));
+		return (EPKG_FATAL);
+	}
+
+	for (fd = -1, i = 0; i < nitems(abi_files); i++) {
+		if (abi_files[i] == NULL)
+			continue;
+		if ((fd = open(abi_files[i], O_RDONLY)) >= 0)
+			break;
+		/* if the ABI_FILE was provided we only care about it */
+		if (i == 0)
+			break;
+	}
+	if (fd == -1) {
+		pkg_emit_error("Unable to determine the ABI\n");
+		return (EPKG_FATAL);
+	}
+
+	if ((elf = elf_begin(fd, ELF_C_READ, NULL)) == NULL) {
+		ret = EPKG_FATAL;
+		pkg_emit_error("elf_begin() failed: %s.", elf_errmsg(-1));
+		goto cleanup;
+	}
+
+	if (gelf_getehdr(elf, &elfhdr) == NULL) {
+		ret = EPKG_FATAL;
+		pkg_emit_error("getehdr() failed: %s.", elf_errmsg(-1));
+		goto cleanup;
+	}
+
+
+	while ((scn = elf_nextscn(elf, scn)) != NULL) {
+		if (gelf_getshdr(scn, &shdr) != &shdr) {
+			ret = EPKG_FATAL;
+			pkg_emit_error("getshdr() failed: %s.", elf_errmsg(-1));
+			goto cleanup;
+		}
+
+		if (shdr.sh_type == SHT_NOTE) {
+			data = elf_getdata(scn, NULL);
+			/*
+			 * loop over all the note section and override what
+			 * should be overridden if any
+			 */
+			elf_note_analyse(data, &elfhdr, &ei);
+		}
+	}
+
+	if (ei.osname == NULL) {
+		ret = EPKG_FATAL;
+		pkg_emit_error("failed to get the note section");
+		goto cleanup;
+	}
+
+	snprintf(dest, sz, "%s:%s", ei.osname, ei.strversion);
+
 	wordsize_corres_str = elf_corres_to_string(wordsize_corres,
 	    (int)elfhdr.e_ident[EI_CLASS]);
 
 	arch = elf_corres_to_string(mach_corres, (int) elfhdr.e_machine);
-	if (version_style == 2) {
-		snprintf(dest, sz, "%s:%d.%d.%d", osname, gnu_abi_tag[1],
-		    gnu_abi_tag[2], gnu_abi_tag[3]);
-	} else {
-		if (osversion != NULL)
-			*osversion = version;
-#if defined(__DragonFly__)
-		snprintf(dest, sz, "%s:%d.%d",
-		    osname, version / 100000, (((version / 100 % 1000)+1)/2)*2);
-#elif defined(__NetBSD__)
-		snprintf(dest, sz, "%s:%d", osname, (version + 1000000) / 100000000);
-#else
-		snprintf(dest, sz, "%s:%d", osname, version / 100000);
-#endif
-	}
 
 	switch (elfhdr.e_machine) {
 	case EM_ARM:

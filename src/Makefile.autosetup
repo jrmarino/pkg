@@ -44,16 +44,19 @@ LOCAL_CFLAGS=	-I$(top_srcdir)/external/uthash \
 		-DGITHASH=\"@GITHASH@\" \
 		-DHAVE_CONFIG_H
 LIBPKGFLAT=	-L$(top_builddir)/libpkg -lpkg_flat
-LIBS=	@EXTRA_LIBS@
+OTHER_LIBS=	@EXTRA_LIBS@
 
 @if HAVE_PKG_LIBARCHIVE
-LIBS+=	@PKG_LIBARCHIVE_LDFLAGS@ @PKG_LIBARCHIVE_LIBS_STATIC@
+OTHER_LIBS+=	@PKG_LIBARCHIVE_LDFLAGS@ @PKG_LIBARCHIVE_LIBS_STATIC@
 @else
 LIBS+=	-larchive -lbz2 -lz -llzma -lzstd
 @endif
-OTHER_LIBS=	-lm -lssl -lcrypto -pthread
+OTHER_LIBS+=	-lm -lssl -lcrypto -pthread
 @if HAVE_LIBUTIL
 OTHER_LIBS+=	-lutil
+@endif
+@if HAVE_LIBFTS
+OTHER_LIBS+=	-lfts
 @endif
 @if HAVE_LIBDL
 OTHER_LIBS+=	-ldl
@@ -75,7 +78,7 @@ STATIC_LDFLAGS=	$(LIBPKGFLAT) \
 		-lm -pthread -lresolv
 @else
 LOCAL_LDFLAGS=	-Wl,-Bstatic \
-		-Wl,--whole-archive $(LIBPKGFLAT) -Wl,--no-whole-archive \
+		@waflags@ $(LIBPKGFLAT) @nowaflags@ \
 		$(LIBS) \
 		-Wl,-Bdynamic $(OTHER_LIBS) \
 		-Wl,--export-dynamic \
@@ -86,19 +89,25 @@ STATIC_LDFLAGS=	-static $(LIBPKGFLAT) $(LIBS) $(OTHER_LIBS)
 
 include $(MK)/prog.mk
 
-all: pkg-static
+@if HAVE_STATIC
+all: ${STATIC_FILE}
+install: install-static
+
+pkg-static: $(OBJS) $(top_builddir)/libpkg/libpkg_flat.a
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(STATIC_LDFLAGS)
+
+install-static: pkg-static
+	install -d -m 755 $(DESTDIR)$(sbindir)
+	install -m 755 pkg-static $(DESTDIR)$(sbindir)/pkg-static
+@endif
 
 ${OBJS}: $(top_builddir)/pkg_config.h
 
 $(PROG): $(top_builddir)/libpkg/libpkg_flat.a
 
-pkg-static: $(OBJS) $(top_builddir)/libpkg/libpkg_flat.a
-	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(STATIC_LDFLAGS)
-
 install: $(PROG) pkg-static
 	install -d -m 755 $(DESTDIR)$(sbindir)
 	install -m 755 pkg $(DESTDIR)$(sbindir)/pkg
-	install -m 755 pkg-static $(DESTDIR)$(sbindir)/pkg-static
 	install -m 644 pkg.conf.sample $(DESTDIR)$(etcdir)
 
 clean: clean-pkg-static

@@ -1,3 +1,42 @@
+Changes from pkg 1.11.0 to 1.11.1
+- Fix ABI on dragonfly
+- Fix ipv6 only environement
+
+Release 1.11
+
+Changes from pkg 1.10.99.13 to 1.10.99.14
+- fix libpkg.so when linked with binutils
+- instead of closing stdin for script just use /dev/null
+- force installation of symlinks to avoid make install to fail is some
+  symlinks are already there
+
+Changes from pkg 1.10.99.12 to 1.10.99.13
+- fix segfault when running pkg version <an_invalid_index_file>
+- fix segfault that can occurs sometime when forcing the installation of a
+  localpackage: pkg install -f ./mypkg-X.txz
+- fix abi detection when multiple elf notes are used in the binary like on
+  fedora
+
+Changes from pkg 1.10.99.11 to 1.10.99.12
+- use /usr/bin/uname to determine of the ABI
+- Add 3 new aliases:
+  * rall-depends: showing depenencies of a non installed package
+  * rcomment: showing only the comment of a non installed package
+  * rdesc: showing only the description of a non installed package
+- switch to cirrus-ci
+- improve portability on linux
+- simplify code to create the repository
+- close stdin when running scripts
+- update bundled libucl to latest version
+- remove backward compat (pkg_*) in periodic scripts
+- always use anticongersion on periodic scripts
+- Prevent SIGSEGV with 'pkg version' with packaged base
+- Fix issue with recent lld
+
+Changes from pkg 1.10.99.10 to 1.10.99.11
+- Fix typos in man pages
+- Attempt to fix build in head where libarchive now uses blake2b
+
 Changes from pkg 1.10.99.9 to 1.10.99.10
 - Fix incremental build
 - Fix loading plugins in the flat binary

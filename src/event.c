@@ -35,7 +35,7 @@
 
 #include <sys/resource.h>
 #include <sys/types.h>
-#ifndef __sun__
+#ifdef HAVE_LIBJAIL
 #include <sys/sysctl.h>
 #endif
 #include <sys/wait.h>

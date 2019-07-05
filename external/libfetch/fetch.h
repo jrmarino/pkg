@@ -128,6 +128,8 @@ struct url_ent {
 #define	FETCH_URL	18
 #define	FETCH_VERBOSE	19
 
+#include <sys/cdefs.h>
+
 __BEGIN_DECLS
 
 /* FILE-specific functions */

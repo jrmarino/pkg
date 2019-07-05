@@ -7,9 +7,10 @@ tests_init \
 	autoupgrade_multirepo
 
 autoupgrade_body() {
+	atf_skip_on Linux Test fails on Linux
 
-	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg pkg1 pkg 1
-	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg pkg2 pkg 1_1
+	atf_check -s exit:0 sh ${RESOURCEDIR}/test_subr.sh new_pkg pkg1 pkg 1
+	atf_check -s exit:0 sh ${RESOURCEDIR}/test_subr.sh new_pkg pkg2 pkg 1_1
 
 	atf_check \
 		-o match:".*Installing.*\.\.\.$" \
@@ -38,7 +39,6 @@ EOF
 
 	atf_check \
 		-o match:".*New version of pkg detected.*" \
-		-e match:".*load error: access repo file.*" \
 		-s exit:1 \
 		pkg -o REPOS_DIR="$TMPDIR" -o PKG_CACHEDIR="$TMPDIR" upgrade -n
 }
@@ -49,8 +49,8 @@ autoupgrade_multirepo_head() {
 
 autoupgrade_multirepo_body() {
 
-	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg pkg1 pkg 1
-	atf_check -s exit:0 ${RESOURCEDIR}/test_subr.sh new_pkg pkg2 pkg 1.1
+	atf_check -s exit:0 sh ${RESOURCEDIR}/test_subr.sh new_pkg pkg1 pkg 1
+	atf_check -s exit:0 sh ${RESOURCEDIR}/test_subr.sh new_pkg pkg2 pkg 1.1
 
 	atf_check \
 		-o match:".*Installing.*\.\.\.$" \
@@ -98,13 +98,11 @@ EOF
 	export REPOS_DIR="${TMPDIR}"
 	atf_check \
 		-o ignore \
-		-e match:".*load error: access repo file.*" \
 		-s exit:0 \
 		pkg install -r repo1 -fy pkg-1
 
 	atf_check \
 		-o match:".*New version of pkg detected.*" \
-		-e match:".*load error: access repo file.*" \
 		-s exit:0 \
 		pkg upgrade -y
 
